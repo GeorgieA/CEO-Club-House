@@ -167,6 +167,17 @@ export async function getUserVote(articleId: string): Promise<1 | -1 | null> {
   return (data?.vote as 1 | -1) ?? null;
 }
 
+export async function getCommentCount(articleId: string): Promise<number> {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("comments")
+    .select("*", { count: "exact", head: true })
+    .eq("article_id", articleId)
+    .eq("status", "published");
+
+  return count ?? 0;
+}
+
 export async function getComments(articleId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase

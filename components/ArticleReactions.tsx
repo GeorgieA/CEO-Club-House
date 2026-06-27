@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import {
+  getCommentCount,
   getUserVote,
   getVoteCounts,
   voteArticle,
@@ -19,6 +19,7 @@ export default function ArticleReactions({ articleId, slug }: ArticleReactionsPr
   const router = useRouter();
   const [likes, setLikes] = useState(0);
   const [dislikes, setDislikes] = useState(0);
+  const [commentCount, setCommentCount] = useState(0);
   const [userVote, setUserVote] = useState<1 | -1 | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -35,11 +36,15 @@ export default function ArticleReactions({ articleId, slug }: ArticleReactionsPr
       setDislikes(d);
     });
 
+    getCommentCount(articleId).then(setCommentCount);
     getUserVote(articleId).then(setUserVote);
   }, [articleId]);
 
   function handleVote(vote: 1 | -1) {
-    if (!isLoggedIn) return;
+    if (!isLoggedIn) {
+      router.push("/login");
+      return;
+    }
 
     startTransition(async () => {
       const result = await voteArticle(articleId, vote, slug);
@@ -62,19 +67,10 @@ export default function ArticleReactions({ articleId, slug }: ArticleReactionsPr
         Reaktionen
       </p>
 
-      {!isLoggedIn && (
-        <p className="mb-4 text-sm text-muted">
-          <Link href="/login" className="font-semibold text-accent hover:underline">
-            Anmelden
-          </Link>
-          , um zu liken oder zu disliken.
-        </p>
-      )}
-
       <div className="flex items-center gap-3">
         <button
           type="button"
-          disabled={!isLoggedIn || pending}
+          disabled={pending}
           onClick={() => handleVote(1)}
           aria-pressed={userVote === 1}
           className={`flex items-center gap-2 rounded-[10px] border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
@@ -88,7 +84,7 @@ export default function ArticleReactions({ articleId, slug }: ArticleReactionsPr
         </button>
         <button
           type="button"
-          disabled={!isLoggedIn || pending}
+          disabled={pending}
           onClick={() => handleVote(-1)}
           aria-pressed={userVote === -1}
           className={`flex items-center gap-2 rounded-[10px] border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
@@ -100,6 +96,13 @@ export default function ArticleReactions({ articleId, slug }: ArticleReactionsPr
           <span aria-hidden>👎</span>
           {dislikes}
         </button>
+        <a
+          href="#kommentare"
+          className="flex items-center gap-2 rounded-[10px] border border-line bg-white px-4 py-2 text-sm font-semibold text-ink transition-colors hover:border-ink dark:bg-[#181230]"
+        >
+          <span aria-hidden>💬</span>
+          {commentCount}
+        </a>
       </div>
     </section>
   );

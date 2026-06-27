@@ -73,7 +73,7 @@ export default function Comments({ articleId, slug }: CommentsProps) {
   }
 
   return (
-    <section className="mt-10 border-t border-line pt-8">
+    <section id="kommentare" className="mt-10 scroll-mt-24 border-t border-line pt-8">
       <p className="mb-4 text-sm font-bold tracking-[0.12em] text-accent uppercase">
         Kommentare ({comments.length})
       </p>

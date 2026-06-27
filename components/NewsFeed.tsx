@@ -44,7 +44,7 @@ export default function NewsFeed({
   };
 
   return (
-    <>
+    <div className="min-w-0">
       <CategoryFilter
         activeCategory={activeCategory}
         onChange={handleCategoryChange}
@@ -61,6 +61,6 @@ export default function NewsFeed({
           </button>
         </div>
       )}
-    </>
+    </div>
   );
 }
