@@ -121,6 +121,7 @@ const exclusionKeywords = [
   "olympia",
   "tennis",
   "basketball",
+  "handball",
   // Kriminalität / Lokales
   "mord",
   "festnahme",
@@ -130,7 +131,31 @@ const exclusionKeywords = [
   "toetung",
   "brandstiftung",
   "kriminal",
-  // Promi / Tabloid
+  "staatsanwalt",
+  "messerangriff",
+  "messerattacke",
+  "vermisst",
+  "leiche",
+  // Wetter / Natur
+  "wetter",
+  "unwetter",
+  "hitze",
+  "hitzewelle",
+  "hitzerekord",
+  "temperaturrekord",
+  "gewitter",
+  "starkregen",
+  "hochwasser",
+  "überschwemmung",
+  "ueberschwemmung",
+  "waldbrand",
+  "dürre",
+  "duerre",
+  "sturmtief",
+  "schneefall",
+  "glatteis",
+  "dwd",
+  // Promi / Tabloid / Boulevard
   "royals",
   "skandal",
   "promi",
@@ -138,6 +163,8 @@ const exclusionKeywords = [
   "schauspieler",
   "sängerin",
   "saengerin",
+  "horoskop",
+  "lotto",
 ];
 
 function escapeRegExp(value: string): string {
@@ -185,7 +212,11 @@ export function classifyArticle(
   const keywordCategory = matchCategory(haystack);
   if (keywordCategory) return keywordCategory;
 
-  if (feedCategory) return feedCategory;
+  // Fallback auf die Feed-Kategorie nur für themenspezifische Feeds
+  // (ai/business/tech). Die "trend"-Feeds (Gesellschaft, Nachhaltigkeit,
+  // Konsum …) sind zu breit – ohne echten Keyword-Treffer würde dort sonst
+  // beliebige allgemeine News (z. B. Wetter) landen.
+  if (feedCategory && feedCategory !== "trend") return feedCategory;
 
   return null;
 }

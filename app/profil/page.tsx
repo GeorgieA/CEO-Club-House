@@ -46,6 +46,19 @@ export default async function ProfilPage() {
         </p>
         <ProfileForm profile={profile as Profile} />
 
+        <div className="mt-10 border-t border-line pt-8">
+          <h2 className="mb-2 text-lg font-bold text-ink">Konto-Sicherheit</h2>
+          <p className="mb-4 text-sm text-muted">
+            Ändere das Passwort für dein Konto.
+          </p>
+          <Link
+            href="/profil/passwort"
+            className="inline-block rounded-[10px] border-[1.5px] border-ink px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-ink hover:text-accent"
+          >
+            Passwort ändern
+          </Link>
+        </div>
+
         {isAdmin && (
           <div className="mt-10 border-t border-line pt-8">
             <h2 className="mb-2 text-lg font-bold text-ink">Administration</h2>

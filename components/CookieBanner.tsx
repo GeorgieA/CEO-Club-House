@@ -51,9 +51,9 @@ export default function CookieBanner() {
       role="dialog"
       aria-modal="true"
       aria-label="Cookie-Einstellungen"
-      className="fixed inset-x-0 bottom-0 z-[200] px-4 pb-4 sm:px-6 sm:pb-6"
+      className="fixed inset-x-0 bottom-0 z-[200] border-t border-line bg-white shadow-[0_-20px_60px_-15px_rgba(25,0,70,0.35)] dark:bg-[#181230]"
     >
-      <div className="mx-auto max-w-[640px] rounded-2xl border border-line bg-white p-6 shadow-[0_20px_60px_-15px_rgba(25,0,70,0.35)] dark:bg-[#181230]">
+      <div className="mx-auto w-full max-w-[1140px] px-6 py-6">
         <div className="mb-3 flex items-center gap-2">
           <span className="h-[3px] w-[18px] rounded-sm bg-accent" />
           <p className="text-[0.8rem] font-bold tracking-[0.12em] text-accent uppercase">

@@ -41,7 +41,7 @@ export async function updateProfile(
     .maybeSingle();
 
   if (currentProfile?.username !== username) {
-    const check = await checkUsernameAvailable(supabase, username);
+    const check = await checkUsernameAvailable(supabase, username, user.id);
 
     if (!check.ok) {
       return { error: "Username-Prüfung fehlgeschlagen." };
@@ -65,6 +65,13 @@ export async function updateProfile(
     if (error.code === "23505") {
       return { error: "Dieser Username ist bereits vergeben." };
     }
+    if (error.code === "23514") {
+      return {
+        error:
+          "Username ungültig (3–20 Zeichen, Buchstaben, Zahlen, Unterstrich).",
+      };
+    }
+    console.error("[profil] updateProfile:", error.code, error.message);
     return { error: "Profil konnte nicht gespeichert werden." };
   }
 

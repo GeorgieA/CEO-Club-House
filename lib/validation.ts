@@ -38,6 +38,16 @@ export const commentBodySchema = z
   .min(1, "Kommentar darf nicht leer sein.")
   .max(2000, "Kommentar darf maximal 2000 Zeichen haben.");
 
+export const changePasswordSchema = z
+  .object({
+    password: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Die Passwörter stimmen nicht überein.",
+    path: ["confirmPassword"],
+  });
+
 export const consentSchema = z
   .any()
   .refine((v) => v === "on" || v === true || v === "true", {

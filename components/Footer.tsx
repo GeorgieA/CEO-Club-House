@@ -7,7 +7,6 @@ const footerLinks = [
   { href: "/datenschutz", label: "Datenschutz" },
   { href: "/agb", label: "AGB" },
   { href: "#", label: "Kontakt" },
-  { href: "#", label: "Über uns" },
 ];
 
 export default function Footer() {
