@@ -2,7 +2,7 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-@theme inline {
+@theme {
   --color-ink: #190046;
   --color-accent: #ff5a1f;
   --color-accent-soft: #fff1ea;
@@ -52,10 +52,17 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-.dark body {
+.dark {
   --color-bg: #0f0a24;
   --color-ink: #f4f1fb;
   --color-muted: #a99fc6;
   --color-line: #2a2150;
   --color-accent-soft: #2a1c12;
+}
+
+/* Header bleibt im Dark Mode hell: helle Palette wiederherstellen */
+.dark .site-header {
+  --color-ink: #190046;
+  --color-muted: #6b7280;
+  --color-line: #e9edf2;
 }

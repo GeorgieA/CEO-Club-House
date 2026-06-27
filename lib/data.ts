@@ -2,13 +2,23 @@ export type NewsCategory = "tech" | "ai" | "business" | "trend";
 
 export interface NewsItem {
   id: string;
+  slug: string;
   category: NewsCategory;
   categoryLabel: string;
   time: string;
   source: string;
   headline: string;
   summary: string;
+  link?: string;
+  publishedAt?: string;
 }
+
+export const categoryLabels: Record<NewsCategory, string> = {
+  tech: "Tech",
+  ai: "AI",
+  business: "Business",
+  trend: "Trends",
+};
 
 export interface TrendingTopic {
   id: number;
@@ -18,6 +28,7 @@ export interface TrendingTopic {
 export const newsItems: NewsItem[] = [
   {
     id: "1",
+    slug: "openai-enterprise-os",
     category: "ai",
     categoryLabel: "AI",
     time: "vor 12 Min.",
@@ -28,6 +39,7 @@ export const newsItems: NewsItem[] = [
   },
   {
     id: "2",
+    slug: "deutsche-startups-vc-rekord",
     category: "business",
     categoryLabel: "Business",
     time: "vor 28 Min.",
@@ -38,6 +50,7 @@ export const newsItems: NewsItem[] = [
   },
   {
     id: "3",
+    slug: "apple-m5-macbook-pro",
     category: "tech",
     categoryLabel: "Tech",
     time: "vor 1 Std.",
@@ -48,6 +61,7 @@ export const newsItems: NewsItem[] = [
   },
   {
     id: "4",
+    slug: "4-tage-woche-dax-pilot",
     category: "trend",
     categoryLabel: "Trend",
     time: "vor 2 Std.",
@@ -58,6 +72,7 @@ export const newsItems: NewsItem[] = [
   },
   {
     id: "5",
+    slug: "eu-ai-act-gruender",
     category: "ai",
     categoryLabel: "AI",
     time: "vor 3 Std.",
@@ -68,6 +83,7 @@ export const newsItems: NewsItem[] = [
   },
   {
     id: "6",
+    slug: "sap-ki-agenten-mittelstand",
     category: "business",
     categoryLabel: "Business",
     time: "vor 5 Std.",

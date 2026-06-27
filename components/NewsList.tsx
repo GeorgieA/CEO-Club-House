@@ -1,6 +1,25 @@
-import { categoryBadgeClasses, newsItems } from "@/lib/data";
+import Link from "next/link";
+import { categoryBadgeClasses, type NewsItem } from "@/lib/data";
 
-export default function NewsList() {
+interface NewsListProps {
+  items: NewsItem[];
+}
+
+export default function NewsList({ items }: NewsListProps) {
+  if (items.length === 0) {
+    return (
+      <section id="aktuell">
+        <p className="mb-6 flex items-center gap-2 text-[0.8rem] font-bold tracking-[0.12em] text-accent uppercase">
+          <span className="h-[3px] w-[18px] rounded-sm bg-accent" />
+          Aktuell
+        </p>
+        <p className="text-muted">
+          Noch keine Artikel vorhanden. Der stündliche Import läuft automatisch.
+        </p>
+      </section>
+    );
+  }
+
   return (
     <section id="aktuell">
       <p className="mb-6 flex items-center gap-2 text-[0.8rem] font-bold tracking-[0.12em] text-accent uppercase">
@@ -8,10 +27,11 @@ export default function NewsList() {
         Aktuell
       </p>
       <div className="flex flex-col">
-        {newsItems.map((item, index) => (
-          <article
+        {items.map((item, index) => (
+          <Link
             key={item.id}
-            className={`group cursor-pointer border-b border-line py-6 ${
+            href={`/news/${item.slug}`}
+            className={`group block border-b border-line py-6 ${
               index === 0 ? "pt-0" : ""
             }`}
           >
@@ -28,7 +48,7 @@ export default function NewsList() {
               {item.headline}
             </h2>
             <p className="text-base text-muted">{item.summary}</p>
-          </article>
+          </Link>
         ))}
       </div>
     </section>

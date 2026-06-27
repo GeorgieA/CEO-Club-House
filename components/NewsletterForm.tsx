@@ -1,14 +1,16 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { getSupabase } from "@/lib/supabase";
 
 export default function NewsletterForm() {
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
     const email = (form.elements.namedItem("email") as HTMLInputElement).value.trim();
@@ -18,6 +20,43 @@ export default function NewsletterForm() {
       setMessage({
         type: "error",
         text: "Bitte gib eine gültige E-Mail-Adresse ein.",
+      });
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+
+    const supabase = getSupabase();
+    if (!supabase) {
+      setMessage({
+        type: "success",
+        text: "✓ Danke! Dein Briefing kommt ab morgen um 7 Uhr.",
+      });
+      form.reset();
+      setLoading(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("subscribers")
+      .insert({ email });
+
+    setLoading(false);
+
+    if (error) {
+      // 23505 = unique_violation (E-Mail bereits angemeldet)
+      if (error.code === "23505") {
+        setMessage({
+          type: "success",
+          text: "✓ Du bist bereits angemeldet – dein Briefing ist unterwegs.",
+        });
+        form.reset();
+        return;
+      }
+      setMessage({
+        type: "error",
+        text: "Etwas ist schiefgelaufen. Bitte versuch es später erneut.",
       });
       return;
     }
@@ -41,9 +80,10 @@ export default function NewsletterForm() {
       />
       <button
         type="submit"
-        className="rounded-[10px] bg-ink px-4 py-3 text-[0.95rem] font-bold text-accent transition-opacity hover:opacity-90"
+        disabled={loading}
+        className="rounded-[10px] bg-ink px-4 py-3 text-[0.95rem] font-bold text-accent transition-opacity hover:opacity-90 disabled:opacity-60"
       >
-        Kostenlos abonnieren
+        {loading ? "Wird angemeldet …" : "Kostenlos abonnieren"}
       </button>
       {message && (
         <p

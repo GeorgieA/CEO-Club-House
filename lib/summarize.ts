@@ -1,0 +1,110 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+export interface SummarizeInput {
+  id: string;
+  title: string;
+  description: string;
+}
+
+function fallbackSummary(description: string, title: string): string {
+  const base = description?.trim() || title.trim();
+  if (base.length <= 220) return base;
+  const cut = base.slice(0, 220);
+  const lastDot = cut.lastIndexOf(".");
+  return (lastDot > 120 ? cut.slice(0, lastDot + 1) : cut.trim() + " …");
+}
+
+const CHUNK_SIZE = 20;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+}
+
+async function summarizeChunk(
+  model: ReturnType<GoogleGenerativeAI["getGenerativeModel"]>,
+  items: SummarizeInput[],
+): Promise<Map<string, string>> {
+  const prompt = `Du bist Redakteur für ein deutschsprachiges News-Briefing für CEOs und Gründer.
+Fasse jeden der folgenden Artikel in 2-3 prägnanten deutschen Sätzen zusammen. Sachlich, ohne Floskeln, keine Anrede.
+Gib ausschließlich gültiges JSON zurück: ein Array von Objekten mit den Feldern "id" und "summary".
+
+Artikel:
+${items
+  .map(
+    (item) =>
+      `- id: ${item.id}\n  titel: ${item.title}\n  beschreibung: ${item.description || "(keine)"}`,
+  )
+  .join("\n")}`;
+
+  const result = await model.generateContent({
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    generationConfig: {
+      responseMimeType: "application/json",
+      temperature: 0.3,
+    },
+  });
+
+  const text = result.response.text();
+  const parsed = JSON.parse(text) as Array<{ id: string; summary: string }>;
+  const map = new Map<string, string>();
+  for (const entry of parsed) {
+    if (entry?.id && entry?.summary) {
+      map.set(String(entry.id), entry.summary.trim());
+    }
+  }
+  return map;
+}
+
+export async function summarizeArticles(
+  items: SummarizeInput[],
+): Promise<Map<string, string>> {
+  const result = new Map<string, string>();
+  for (const item of items) {
+    result.set(item.id, fallbackSummary(item.description, item.title));
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey || items.length === 0) {
+    if (!apiKey) {
+      console.warn(
+        "[summarize] GEMINI_API_KEY fehlt – nutze Fallback-Zusammenfassungen.",
+      );
+    }
+    return result;
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const chunkResults = await Promise.allSettled(
+      chunk(items, CHUNK_SIZE).map((group) => summarizeChunk(model, group)),
+    );
+
+    for (const chunkResult of chunkResults) {
+      if (chunkResult.status === "fulfilled") {
+        for (const [id, summary] of chunkResult.value) {
+          result.set(id, summary);
+        }
+      } else {
+        console.warn(
+          "[summarize] Gemini-Chunk fehlgeschlagen:",
+          chunkResult.reason instanceof Error
+            ? chunkResult.reason.message
+            : chunkResult.reason,
+        );
+      }
+    }
+  } catch (error) {
+    console.warn(
+      "[summarize] Gemini nicht verfügbar – nutze Fallback:",
+      error instanceof Error ? error.message : error,
+    );
+  }
+
+  return result;
+}

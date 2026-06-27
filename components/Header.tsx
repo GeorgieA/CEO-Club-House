@@ -19,7 +19,7 @@ export default function Header() {
   const closeNav = () => setNavOpen(false);
 
   return (
-    <header className="sticky top-0 z-[100] border-b border-line bg-white/90 backdrop-blur-sm">
+    <header className="site-header sticky top-0 z-[100] border-b border-line bg-white/90 backdrop-blur-sm">
       <div className="relative mx-auto flex h-[132px] max-w-[1140px] items-center justify-between gap-6 px-6">
         <Link href="#" className="flex items-center">
           <Image
