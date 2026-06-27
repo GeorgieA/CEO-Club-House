@@ -70,7 +70,73 @@ export function rowToNewsItem(row: ArticleRow): NewsItem {
   };
 }
 
-export async function getAllArticles(limit = 50): Promise<NewsItem[]> {
+export async function getTodayArticleCount(): Promise<number> {
+  const supabase = createSupabaseServerClient();
+  if (!supabase) return 0;
+
+  const today = new Date().toLocaleDateString("en-CA", {
+    timeZone: "Europe/Berlin",
+  });
+
+  const { count, error } = await supabase
+    .from("articles")
+    .select("*", { count: "exact", head: true })
+    .gte("created_at", `${today}T00:00:00`);
+
+  if (error) {
+    console.error("[articles] getTodayArticleCount:", error.message);
+    return 0;
+  }
+
+  return count ?? 0;
+}
+
+export interface TrendingArticle {
+  id: string;
+  slug: string;
+  title: string;
+}
+
+export async function getTrendingArticles(
+  limit = 5,
+): Promise<TrendingArticle[]> {
+  const supabase = createSupabaseServerClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("articles")
+    .select("id, slug, title")
+    .order("published_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("[articles] getTrendingArticles:", error.message);
+    return [];
+  }
+
+  return data as TrendingArticle[];
+}
+
+export async function getAllArticlesForSitemap(): Promise<
+  { slug: string; published_at: string }[]
+> {
+  const supabase = createSupabaseServerClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("articles")
+    .select("slug, published_at")
+    .order("published_at", { ascending: false });
+
+  if (error) {
+    console.error("[articles] getAllArticlesForSitemap:", error.message);
+    return [];
+  }
+
+  return data as { slug: string; published_at: string }[];
+}
+
+export async function getAllArticles(limit = 200): Promise<NewsItem[]> {
   const supabase = createSupabaseServerClient();
   if (!supabase) return [];
 
@@ -82,6 +148,28 @@ export async function getAllArticles(limit = 50): Promise<NewsItem[]> {
 
   if (error) {
     console.error("[articles] getAllArticles:", error.message);
+    return [];
+  }
+
+  return (data as ArticleRow[]).map(rowToNewsItem);
+}
+
+export async function getArticlesByCategory(
+  category: NewsCategory,
+  limit = 200,
+): Promise<NewsItem[]> {
+  const supabase = createSupabaseServerClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("articles")
+    .select("*")
+    .eq("category", category)
+    .order("published_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("[articles] getArticlesByCategory:", error.message);
     return [];
   }
 

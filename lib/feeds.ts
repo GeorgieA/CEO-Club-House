@@ -13,6 +13,18 @@ export interface RawArticle {
   publishedAt: string;
 }
 
+export interface FeedResult {
+  name: string;
+  status: "ok" | "error";
+  count: number;
+  error?: string;
+}
+
+export interface FetchAllFeedsResult {
+  articles: RawArticle[];
+  feedResults: FeedResult[];
+}
+
 export const feedSources: FeedSource[] = [
   {
     name: "Google News",
@@ -71,22 +83,47 @@ async function fetchFeed(source: FeedSource): Promise<RawArticle[]> {
   }));
 }
 
-export async function fetchAllFeeds(): Promise<RawArticle[]> {
+export async function fetchAllFeeds(): Promise<FetchAllFeedsResult> {
   const results = await Promise.allSettled(feedSources.map(fetchFeed));
 
   const articles: RawArticle[] = [];
-  results.forEach((result, index) => {
+  const feedResults: FeedResult[] = results.map((result, index) => {
+    const source = feedSources[index];
+
     if (result.status === "fulfilled") {
       articles.push(...result.value);
-    } else {
-      console.warn(
-        `[feeds] Quelle "${feedSources[index].name}" fehlgeschlagen:`,
-        result.reason instanceof Error
-          ? result.reason.message
-          : result.reason,
-      );
+      return {
+        name: source.name,
+        status: "ok" as const,
+        count: result.value.length,
+      };
     }
+
+    const errorMessage =
+      result.reason instanceof Error
+        ? result.reason.message
+        : String(result.reason);
+
+    console.warn(
+      JSON.stringify({
+        event: "feed.result",
+        source: source.name,
+        status: "error",
+        count: 0,
+        error: errorMessage,
+      }),
+    );
+
+    return {
+      name: source.name,
+      status: "error" as const,
+      count: 0,
+      error: errorMessage,
+    };
   });
 
-  return articles.filter((a) => a.title && a.title !== "Ohne Titel");
+  return {
+    articles: articles.filter((a) => a.title && a.title !== "Ohne Titel"),
+    feedResults,
+  };
 }

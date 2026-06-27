@@ -1,9 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
+import CookieSettingsLink from "./CookieSettingsLink";
 
 const footerLinks = [
   { href: "#", label: "Impressum" },
-  { href: "#", label: "Datenschutz" },
+  { href: "/datenschutz", label: "Datenschutz" },
   { href: "#", label: "Kontakt" },
   { href: "#", label: "Über uns" },
 ];
@@ -31,6 +32,7 @@ export default function Footer() {
               {link.label}
             </Link>
           ))}
+          <CookieSettingsLink className="text-[0.9rem] text-muted transition-colors hover:text-ink" />
         </nav>
         <span className="text-[0.85rem] text-muted">© 2026 CEO Clubhouse</span>
       </div>

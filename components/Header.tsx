@@ -2,32 +2,37 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { CATEGORIES } from "@/lib/categories";
+import AuthNav from "./AuthNav";
 import ThemeToggle from "./ThemeToggle";
 
 const navLinks = [
-  { href: "#", label: "Home", active: true },
-  { href: "#aktuell", label: "Tech" },
-  { href: "#aktuell", label: "AI" },
-  { href: "#aktuell", label: "Business" },
-  { href: "#aktuell", label: "Trends" },
+  { href: "/", label: "Home", match: (path: string) => path === "/" },
+  ...CATEGORIES.map((category) => ({
+    href: `/kategorie/${category.slug}`,
+    label: category.label,
+    match: (path: string) => path === `/kategorie/${category.slug}`,
+  })),
 ];
 
 export default function Header() {
+  const pathname = usePathname();
   const [navOpen, setNavOpen] = useState(false);
 
   const closeNav = () => setNavOpen(false);
 
   return (
     <header className="site-header sticky top-0 z-[100] border-b border-line bg-white/90 backdrop-blur-sm">
-      <div className="relative mx-auto flex h-[132px] max-w-[1140px] items-center justify-between gap-6 px-6">
-        <Link href="#" className="flex items-center">
+      <div className="relative mx-auto flex h-[72px] max-w-[1140px] items-center justify-between gap-6 px-6 md:h-[132px]">
+        <Link href="/" className="flex items-center" onClick={closeNav}>
           <Image
             src="/logo.png"
             alt="CEO Clubhouse"
             width={96}
             height={104}
-            className="h-[104px] w-auto"
+            className="h-[56px] w-auto md:h-[104px]"
             priority
           />
         </Link>
@@ -40,30 +45,29 @@ export default function Header() {
               : "hidden md:flex md:flex-row"
           }`}
         >
-          {navLinks.map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              onClick={closeNav}
-              className={`rounded-lg px-3.5 py-2 text-[0.98rem] font-medium transition-colors ${
-                link.active
-                  ? "bg-[#f1f5f9] text-ink"
-                  : "text-muted hover:bg-[#f1f5f9] hover:text-ink"
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {navLinks.map((link) => {
+            const isActive = link.match(pathname);
+
+            return (
+              <Link
+                key={link.label}
+                href={link.href}
+                onClick={closeNav}
+                className={`rounded-lg px-3.5 py-2 text-[0.98rem] font-medium transition-colors ${
+                  isActive
+                    ? "bg-[#f1f5f9] text-ink"
+                    : "text-muted hover:bg-[#f1f5f9] hover:text-ink"
+                }`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="flex items-center gap-3">
+          <AuthNav />
           <ThemeToggle />
-          <Link
-            href="#newsletter"
-            className="hidden rounded-[10px] border-[1.5px] border-ink bg-ink px-5 py-2.5 text-[0.95rem] font-bold text-accent transition-opacity hover:opacity-90 md:inline-block"
-          >
-            Newsletter
-          </Link>
           <button
             type="button"
             id="burger"

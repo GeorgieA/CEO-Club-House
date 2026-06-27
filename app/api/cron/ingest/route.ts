@@ -14,6 +14,10 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
+function log(event: string, data: Record<string, unknown>) {
+  console.log(JSON.stringify({ event, timestamp: new Date().toISOString(), ...data }));
+}
+
 function isAuthorized(request: Request): boolean {
   const secret = process.env.CRON_SECRET;
   if (!secret) return false;
@@ -27,20 +31,68 @@ export async function GET(request: Request) {
   }
 
   const startedAt = Date.now();
+  log("ingest.start", {});
 
   try {
-    const raw = await fetchAllFeeds();
+    const { articles: raw, feedResults } = await fetchAllFeeds();
+
+    for (const result of feedResults) {
+      log("feed.result", {
+        source: result.name,
+        status: result.status,
+        count: result.count,
+        ...(result.error ? { error: result.error } : {}),
+      });
+    }
+
+    const feedsFailed = feedResults
+      .filter((result) => result.status === "error")
+      .map((result) => result.name);
+
+    if (feedResults.every((result) => result.status === "error")) {
+      log("ingest.failed", { reason: "all_feeds_down", feedsFailed });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Alle RSS-Feeds sind nicht erreichbar.",
+          feedsFailed,
+          durationMs: Date.now() - startedAt,
+        },
+        { status: 503 },
+      );
+    }
+
     const unique = dedupeBySimilarity(raw).filter((a) => a.link);
+
+    log("dedupe", {
+      raw: raw.length,
+      unique: unique.length,
+      duplicatesRemoved: raw.length - unique.length,
+    });
 
     const existingUrls = await getExistingSourceUrls();
     const fresh = unique.filter((a) => !existingUrls.has(a.link));
 
+    log("db.check", {
+      existing: existingUrls.size,
+      fresh: fresh.length,
+      skipped: unique.length - fresh.length,
+    });
+
     if (fresh.length === 0) {
+      log("ingest.done", {
+        inserted: 0,
+        skipped: unique.length,
+        feedsFailed,
+        durationMs: Date.now() - startedAt,
+      });
+
       return NextResponse.json({
         ok: true,
         inserted: 0,
         skipped: unique.length,
         message: "Keine neuen Artikel.",
+        feedsFailed,
         durationMs: Date.now() - startedAt,
       });
     }
@@ -51,6 +103,7 @@ export async function GET(request: Request) {
       return { article, id, category };
     });
 
+    const summarizeStartedAt = Date.now();
     const summaries = await summarizeArticles(
       prepared.map(({ id, article }) => ({
         id,
@@ -58,6 +111,11 @@ export async function GET(request: Request) {
         description: article.description,
       })),
     );
+
+    log("summarize", {
+      count: prepared.length,
+      durationMs: Date.now() - summarizeStartedAt,
+    });
 
     const rows: ArticleInsert[] = prepared.map(({ article, id, category }) => ({
       title: article.title,
@@ -71,19 +129,31 @@ export async function GET(request: Request) {
 
     const inserted = await insertArticles(rows);
 
+    log("ingest.done", {
+      inserted,
+      skipped: unique.length - fresh.length,
+      candidates: fresh.length,
+      feedsFailed,
+      durationMs: Date.now() - startedAt,
+    });
+
     return NextResponse.json({
       ok: true,
       inserted,
       skipped: unique.length - fresh.length,
       candidates: fresh.length,
+      feedsFailed,
       durationMs: Date.now() - startedAt,
     });
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Ingest fehlgeschlagen";
+    log("ingest.error", { error: message });
     console.error("[cron/ingest]", error);
     return NextResponse.json(
       {
         ok: false,
-        error: error instanceof Error ? error.message : "Ingest fehlgeschlagen",
+        error: message,
+        durationMs: Date.now() - startedAt,
       },
       { status: 500 },
     );
