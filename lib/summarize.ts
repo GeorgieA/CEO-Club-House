@@ -27,11 +27,16 @@ function chunk<T>(items: T[], size: number): T[][] {
 async function summarizeChunk(
   model: ReturnType<GoogleGenerativeAI["getGenerativeModel"]>,
   items: SummarizeInput[],
+  extraInstructions: string,
 ): Promise<Map<string, string>> {
+  const instructionsBlock = extraInstructions
+    ? `\nZusätzliche Anweisungen der Redaktion (unbedingt befolgen, sofern sie dem JSON-Format nicht widersprechen):\n${extraInstructions}\n`
+    : "";
+
   const prompt = `Du bist Redakteur für ein deutschsprachiges News-Briefing für CEOs und Gründer.
 Fasse jeden der folgenden Artikel in 2-3 prägnanten deutschen Sätzen zusammen. Sachlich, ohne Floskeln, keine Anrede.
 Gib ausschließlich gültiges JSON zurück: ein Array von Objekten mit den Feldern "id" und "summary".
-
+${instructionsBlock}
 Artikel:
 ${items
   .map(
@@ -61,6 +66,7 @@ ${items
 
 export async function summarizeArticles(
   items: SummarizeInput[],
+  extraInstructions = "",
 ): Promise<Map<string, string>> {
   const result = new Map<string, string>();
   for (const item of items) {
@@ -83,7 +89,9 @@ export async function summarizeArticles(
     const model = genAI.getGenerativeModel({ model: modelName });
 
     const chunkResults = await Promise.allSettled(
-      chunk(items, CHUNK_SIZE).map((group) => summarizeChunk(model, group)),
+      chunk(items, CHUNK_SIZE).map((group) =>
+        summarizeChunk(model, group, extraInstructions),
+      ),
     );
 
     for (const chunkResult of chunkResults) {

@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import ProfileForm from "@/components/ProfileForm";
 import ScrollToTop from "@/components/ScrollToTop";
+import { isCurrentUserAdmin } from "@/lib/admin";
 import { createClient, getUser } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/validation";
 
@@ -16,6 +18,8 @@ export default async function ProfilPage() {
     .select("*")
     .eq("id", user.id)
     .maybeSingle();
+
+  const isAdmin = await isCurrentUserAdmin();
 
   if (error || !profile) {
     return (
@@ -41,6 +45,22 @@ export default async function ProfilPage() {
           News-Präferenzen.
         </p>
         <ProfileForm profile={profile as Profile} />
+
+        {isAdmin && (
+          <div className="mt-10 border-t border-line pt-8">
+            <h2 className="mb-2 text-lg font-bold text-ink">Administration</h2>
+            <p className="mb-4 text-sm text-muted">
+              Globale Prompt-Anweisungen für die automatische News-Erstellung
+              verwalten.
+            </p>
+            <Link
+              href="/admin"
+              className="inline-block rounded-[10px] border-[1.5px] border-ink bg-ink px-5 py-2.5 text-sm font-bold text-accent transition-opacity hover:opacity-90"
+            >
+              Zum Admin-Bereich
+            </Link>
+          </div>
+        )}
       </main>
       <Footer />
       <ScrollToTop />

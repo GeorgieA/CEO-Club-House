@@ -8,6 +8,7 @@ import {
 import { classifyArticle } from "@/lib/categorize";
 import { dedupeBySimilarity } from "@/lib/dedupe";
 import { fetchAllFeeds } from "@/lib/feeds";
+import { getGeminiInstructions } from "@/lib/settings";
 import { summarizeArticles } from "@/lib/summarize";
 
 export const runtime = "nodejs";
@@ -128,6 +129,8 @@ export async function GET(request: Request) {
       category,
     }));
 
+    const geminiInstructions = await getGeminiInstructions();
+
     const summarizeStartedAt = Date.now();
     const summaries = await summarizeArticles(
       prepared.map(({ id, article }) => ({
@@ -135,10 +138,12 @@ export async function GET(request: Request) {
         title: article.title,
         description: article.description,
       })),
+      geminiInstructions,
     );
 
     log("summarize", {
       count: prepared.length,
+      hasCustomInstructions: geminiInstructions.length > 0,
       durationMs: Date.now() - summarizeStartedAt,
     });
 
