@@ -1,6 +1,6 @@
 import type { NewsCategory } from "./data";
 
-const keywordMap: Record<Exclude<NewsCategory, "trend">, string[]> = {
+const keywordMap: Record<NewsCategory, string[]> = {
   ai: [
     "ki",
     "k.i.",
@@ -47,11 +47,13 @@ const keywordMap: Record<Exclude<NewsCategory, "trend">, string[]> = {
     "million euro",
     "quartalszahlen",
     "bilanz",
-    "ceo",
     "konzern",
     "wirtschaft",
     "economy",
     "revenue",
+    "unternehmen",
+    "gründer",
+    "gruender",
   ],
   tech: [
     "iphone",
@@ -72,27 +74,76 @@ const keywordMap: Record<Exclude<NewsCategory, "trend">, string[]> = {
     "smartphone",
     "laptop",
     "gadget",
-    "update",
     "browser",
     "betriebssystem",
     "cybersecurity",
-    "datenschutz",
     "quantum",
+    "technologie",
     "tech",
+  ],
+  trend: [
+    "nachhaltigkeit",
+    "esg",
+    "klima",
+    "energiewende",
+    "inflation",
+    "zinsen",
+    "ezb",
+    "konsum",
+    "einzelhandel",
+    "demografie",
+    "migration",
+    "gesellschaft",
+    "regulierung",
+    "arbeitsmarkt",
+    "lieferkette",
+    "rohstoff",
+    "immobilienmarkt",
+    "klimawandel",
+    "co2",
+    "emission",
+    "markttrend",
+    "verbraucher",
+    "handel",
   ],
 };
 
-const priority: Array<Exclude<NewsCategory, "trend">> = [
-  "ai",
-  "business",
-  "tech",
+const categoryPriority: NewsCategory[] = ["ai", "business", "tech", "trend"];
+
+const exclusionKeywords = [
+  // Sport
+  "fußball",
+  "fussball",
+  "bundesliga",
+  "champions league",
+  "formel 1",
+  "wm 20",
+  "olympia",
+  "tennis",
+  "basketball",
+  // Kriminalität / Lokales
+  "mord",
+  "festnahme",
+  "polizei",
+  "unfall",
+  "tötung",
+  "toetung",
+  "brandstiftung",
+  "kriminal",
+  // Promi / Tabloid
+  "royals",
+  "skandal",
+  "promi",
+  "star ",
+  "schauspieler",
+  "sängerin",
+  "saengerin",
 ];
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-// Wortgrenzen-Matcher: verhindert Teilstring-Treffer wie "ki" in "working".
 const matcherCache = new Map<string, RegExp>();
 function keywordMatches(haystack: string, keyword: string): boolean {
   let regex = matcherCache.get(keyword);
@@ -106,15 +157,35 @@ function keywordMatches(haystack: string, keyword: string): boolean {
   return regex.test(haystack);
 }
 
-export function categorize(title: string, description: string): NewsCategory {
+function isExcluded(title: string, description: string): boolean {
   const haystack = `${title} ${description}`.toLowerCase();
+  return exclusionKeywords.some((keyword) => keywordMatches(haystack, keyword));
+}
 
-  for (const category of priority) {
+function matchCategory(haystack: string): NewsCategory | null {
+  for (const category of categoryPriority) {
     const hit = keywordMap[category].some((keyword) =>
       keywordMatches(haystack, keyword),
     );
     if (hit) return category;
   }
+  return null;
+}
 
-  return "trend";
+export function classifyArticle(
+  title: string,
+  description: string,
+  feedCategory?: NewsCategory,
+): NewsCategory | null {
+  if (isExcluded(title, description)) {
+    return null;
+  }
+
+  const haystack = `${title} ${description}`.toLowerCase();
+  const keywordCategory = matchCategory(haystack);
+  if (keywordCategory) return keywordCategory;
+
+  if (feedCategory) return feedCategory;
+
+  return null;
 }

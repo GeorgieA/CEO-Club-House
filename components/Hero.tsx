@@ -20,7 +20,7 @@ export default function Hero({ todayCount }: HeroProps) {
         <span className="text-white/90">{countLabel}</span>
       </span>
       <h1 className="mb-4 max-w-[16ch] text-[clamp(2rem,5vw,3.25rem)] leading-[1.1] font-extrabold tracking-[-0.03em] text-ink">
-        Die wichtigsten News für Entscheider — in 3 Minuten.
+        Alle wichtigen News für Unternehmer gut verpackt
       </h1>
       <p className="max-w-[60ch] text-[1.15rem] text-muted">
         KI-zusammengefasste Nachrichten aus Tech, Business und Trends. Täglich.

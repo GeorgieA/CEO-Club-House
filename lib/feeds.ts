@@ -1,8 +1,10 @@
 import Parser from "rss-parser";
+import type { NewsCategory } from "@/lib/data";
 
 export interface FeedSource {
   name: string;
   url: string;
+  category: NewsCategory;
 }
 
 export interface RawArticle {
@@ -11,10 +13,12 @@ export interface RawArticle {
   link: string;
   source: string;
   publishedAt: string;
+  feedCategory: NewsCategory;
 }
 
 export interface FeedResult {
   name: string;
+  category: NewsCategory;
   status: "ok" | "error";
   count: number;
   error?: string;
@@ -26,25 +30,84 @@ export interface FetchAllFeedsResult {
 }
 
 export const feedSources: FeedSource[] = [
+  // Tech
   {
-    name: "Google News",
-    url: "https://news.google.com/rss?hl=de&gl=DE&ceid=DE:de",
+    name: "Google News Technologie",
+    url: "https://news.google.com/rss/search?q=Technologie&hl=de&gl=DE&ceid=DE:de",
+    category: "tech",
   },
   {
-    name: "Reuters",
-    url: "https://www.reutersagency.com/feed/?best-topics=business-finance&post_type=best",
+    name: "t3n",
+    url: "https://t3n.de/rss.xml",
+    category: "tech",
   },
   {
-    name: "Spiegel",
-    url: "https://www.spiegel.de/schlagzeilen/tops/index.rss",
+    name: "Heise Top",
+    url: "https://www.heise.de/rss/heise-top-atom.xml",
+    category: "tech",
   },
   {
-    name: "Zeit",
-    url: "https://newsfeed.zeit.de/index",
+    name: "Golem",
+    url: "https://rss.golem.de/rss.php?feed=RSS2.0",
+    category: "tech",
+  },
+  // AI
+  {
+    name: "Google News KI",
+    url: "https://news.google.com/rss/search?q=K%C3%BCnstliche+Intelligenz&hl=de&gl=DE&ceid=DE:de",
+    category: "ai",
   },
   {
-    name: "BBC",
-    url: "https://feeds.bbci.co.uk/news/rss.xml",
+    name: "Google News ChatGPT",
+    url: "https://news.google.com/rss/search?q=ChatGPT+OR+OpenAI&hl=de&gl=DE&ceid=DE:de",
+    category: "ai",
+  },
+  {
+    name: "Google News Machine Learning",
+    url: "https://news.google.com/rss/search?q=Machine+Learning&hl=de&gl=DE&ceid=DE:de",
+    category: "ai",
+  },
+  // Business
+  {
+    name: "Google News Wirtschaft",
+    url: "https://news.google.com/rss/search?q=Wirtschaft&hl=de&gl=DE&ceid=DE:de",
+    category: "business",
+  },
+  {
+    name: "Google News Startups",
+    url: "https://news.google.com/rss/search?q=Startups&hl=de&gl=DE&ceid=DE:de",
+    category: "business",
+  },
+  {
+    name: "Google News Wirtschaft",
+    url: "https://news.google.com/rss/search?q=Wirtschaft+Unternehmen&hl=de&gl=DE&ceid=DE:de",
+    category: "business",
+  },
+  {
+    name: "Google News Börse",
+    url: "https://news.google.com/rss/search?q=B%C3%B6rse+OR+Aktien&hl=de&gl=DE&ceid=DE:de",
+    category: "business",
+  },
+  // Trends (Wirtschaft & Gesellschaft)
+  {
+    name: "Google News Nachhaltigkeit",
+    url: "https://news.google.com/rss/search?q=Nachhaltigkeit+OR+ESG&hl=de&gl=DE&ceid=DE:de",
+    category: "trend",
+  },
+  {
+    name: "Google News Konsum",
+    url: "https://news.google.com/rss/search?q=Konsum+OR+Einzelhandel&hl=de&gl=DE&ceid=DE:de",
+    category: "trend",
+  },
+  {
+    name: "Google News Gesellschaft",
+    url: "https://news.google.com/rss/search?q=Gesellschaft+OR+Demografie&hl=de&gl=DE&ceid=DE:de",
+    category: "trend",
+  },
+  {
+    name: "Google News Inflation",
+    url: "https://news.google.com/rss/search?q=Inflation+OR+EZB+OR+Zinsen&hl=de&gl=DE&ceid=DE:de",
+    category: "trend",
   },
 ];
 
@@ -52,7 +115,7 @@ const parser = new Parser({
   timeout: 8000,
   headers: {
     "User-Agent":
-      "Mozilla/5.0 (compatible; CEOClubhouseBot/1.0; +https://ceo-clubhouse.example)",
+      "Mozilla/5.0 (compatible; CEOClubhouseBot/1.0; +https://ceo-club-house.vercel.app)",
   },
 });
 
@@ -80,6 +143,7 @@ async function fetchFeed(source: FeedSource): Promise<RawArticle[]> {
     link: item.link ?? "",
     source: source.name,
     publishedAt: item.isoDate ?? item.pubDate ?? new Date().toISOString(),
+    feedCategory: source.category,
   }));
 }
 
@@ -94,6 +158,7 @@ export async function fetchAllFeeds(): Promise<FetchAllFeedsResult> {
       articles.push(...result.value);
       return {
         name: source.name,
+        category: source.category,
         status: "ok" as const,
         count: result.value.length,
       };
@@ -108,6 +173,7 @@ export async function fetchAllFeeds(): Promise<FetchAllFeedsResult> {
       JSON.stringify({
         event: "feed.result",
         source: source.name,
+        category: source.category,
         status: "error",
         count: 0,
         error: errorMessage,
@@ -116,6 +182,7 @@ export async function fetchAllFeeds(): Promise<FetchAllFeedsResult> {
 
     return {
       name: source.name,
+      category: source.category,
       status: "error" as const,
       count: 0,
       error: errorMessage,

@@ -3,10 +3,9 @@ import { z } from "zod";
 export const usernameSchema = z
   .string()
   .trim()
-  .toLowerCase()
   .regex(
-    /^[a-z0-9_]{3,20}$/,
-    "Username: 3–20 Zeichen, nur Kleinbuchstaben, Zahlen und Unterstrich.",
+    /^[A-Za-z0-9_]{3,20}$/,
+    "Username: 3–20 Zeichen, nur Buchstaben, Zahlen und Unterstrich.",
   );
 
 export const emailSchema = z
@@ -39,15 +38,23 @@ export const commentBodySchema = z
   .min(1, "Kommentar darf nicht leer sein.")
   .max(2000, "Kommentar darf maximal 2000 Zeichen haben.");
 
+export const consentSchema = z
+  .any()
+  .refine((v) => v === "on" || v === true || v === "true", {
+    message: "Bitte akzeptiere AGB und Datenschutzerklärung.",
+  });
+
 export const signUpSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
   username: usernameSchema,
+  acceptTerms: consentSchema,
 });
 
 export const signInSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
+  acceptTerms: consentSchema,
 });
 
 export const updateProfileSchema = z.object({

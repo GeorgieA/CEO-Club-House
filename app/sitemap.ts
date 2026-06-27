@@ -22,6 +22,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "hourly" as const,
       priority: 0.9,
     })),
+    ...["impressum", "datenschutz", "agb"].map((slug) => ({
+      url: `${siteUrl}/${slug}`,
+      lastModified: new Date(),
+      changeFrequency: "yearly" as const,
+      priority: 0.3,
+    })),
     ...articles.map((article) => ({
       url: `${siteUrl}/news/${article.slug}`,
       lastModified: new Date(article.published_at),

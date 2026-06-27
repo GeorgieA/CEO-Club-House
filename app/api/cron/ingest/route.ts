@@ -5,7 +5,7 @@ import {
   slugify,
   type ArticleInsert,
 } from "@/lib/articles";
-import { categorize } from "@/lib/categorize";
+import { classifyArticle } from "@/lib/categorize";
 import { dedupeBySimilarity } from "@/lib/dedupe";
 import { fetchAllFeeds } from "@/lib/feeds";
 import { summarizeArticles } from "@/lib/summarize";
@@ -39,6 +39,7 @@ export async function GET(request: Request) {
     for (const result of feedResults) {
       log("feed.result", {
         source: result.name,
+        category: result.category,
         status: result.status,
         count: result.count,
         ...(result.error ? { error: result.error } : {}),
@@ -70,19 +71,42 @@ export async function GET(request: Request) {
       duplicatesRemoved: raw.length - unique.length,
     });
 
+    const classified = unique
+      .map((article) => ({
+        article,
+        category: classifyArticle(
+          article.title,
+          article.description,
+          article.feedCategory,
+        ),
+      }))
+      .filter(
+        (entry): entry is typeof entry & { category: NonNullable<typeof entry.category> } =>
+          entry.category !== null,
+      );
+
+    const rejectedByCategory = unique.length - classified.length;
+
+    log("filter.category", {
+      raw: unique.length,
+      kept: classified.length,
+      rejected: rejectedByCategory,
+    });
+
     const existingUrls = await getExistingSourceUrls();
-    const fresh = unique.filter((a) => !existingUrls.has(a.link));
+    const fresh = classified.filter(({ article }) => !existingUrls.has(article.link));
 
     log("db.check", {
       existing: existingUrls.size,
       fresh: fresh.length,
-      skipped: unique.length - fresh.length,
+      skipped: classified.length - fresh.length,
     });
 
     if (fresh.length === 0) {
       log("ingest.done", {
         inserted: 0,
-        skipped: unique.length,
+        skipped: classified.length,
+        rejectedByCategory,
         feedsFailed,
         durationMs: Date.now() - startedAt,
       });
@@ -90,18 +114,19 @@ export async function GET(request: Request) {
       return NextResponse.json({
         ok: true,
         inserted: 0,
-        skipped: unique.length,
+        skipped: classified.length,
+        rejectedByCategory,
         message: "Keine neuen Artikel.",
         feedsFailed,
         durationMs: Date.now() - startedAt,
       });
     }
 
-    const prepared = fresh.map((article) => {
-      const id = article.link;
-      const category = categorize(article.title, article.description);
-      return { article, id, category };
-    });
+    const prepared = fresh.map(({ article, category }) => ({
+      article,
+      id: article.link,
+      category,
+    }));
 
     const summarizeStartedAt = Date.now();
     const summaries = await summarizeArticles(
@@ -131,8 +156,9 @@ export async function GET(request: Request) {
 
     log("ingest.done", {
       inserted,
-      skipped: unique.length - fresh.length,
+      skipped: classified.length - fresh.length,
       candidates: fresh.length,
+      rejectedByCategory,
       feedsFailed,
       durationMs: Date.now() - startedAt,
     });
@@ -140,8 +166,9 @@ export async function GET(request: Request) {
     return NextResponse.json({
       ok: true,
       inserted,
-      skipped: unique.length - fresh.length,
+      skipped: classified.length - fresh.length,
       candidates: fresh.length,
+      rejectedByCategory,
       feedsFailed,
       durationMs: Date.now() - startedAt,
     });

@@ -22,7 +22,7 @@ export function getCategoryDescription(slug: CategorySlug): string {
     tech: "Die neuesten Tech-News für Entscheider — Hardware, Software und Innovation.",
     ai: "KI-News und Künstliche Intelligenz — Updates für Gründer und CEOs.",
     business: "Business-News aus Wirtschaft, Startups und Unternehmensführung.",
-    trend: "Trends und Entwicklungen, die Gründer und CEOs kennen sollten.",
+    trend: "Wirtschafts- und Gesellschaftstrends — Nachhaltigkeit, Konsum, Märkte und Regulierung.",
   };
   return descriptions[slug];
 }

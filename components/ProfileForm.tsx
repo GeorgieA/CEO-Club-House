@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { updateProfile, type ProfileActionState } from "@/app/profil/actions";
 import { CATEGORIES } from "@/lib/categories";
 import type { Profile } from "@/lib/validation";
@@ -13,6 +13,17 @@ interface ProfileFormProps {
 
 export default function ProfileForm({ profile }: ProfileFormProps) {
   const [state, formAction, pending] = useActionState(updateProfile, initialState);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(
+    profile.preferred_categories,
+  );
+
+  const toggleCategory = (slug: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(slug)
+        ? prev.filter((s) => s !== slug)
+        : [...prev, slug],
+    );
+  };
 
   return (
     <form action={formAction} className="flex max-w-lg flex-col gap-6">
@@ -26,7 +37,7 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
           type="text"
           required
           defaultValue={profile.username}
-          pattern="[a-z0-9_]{3,20}"
+          pattern="[A-Za-z0-9_]{3,20}"
           className="w-full rounded-[10px] border border-line bg-white px-4 py-3 text-ink outline-none focus:border-accent dark:bg-[#181230]"
         />
       </div>
@@ -55,30 +66,35 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
         </legend>
         <div className="flex flex-wrap gap-3">
           {CATEGORIES.map((category) => {
-            const checked = profile.preferred_categories.includes(category.slug);
+            const checked = selectedCategories.includes(category.slug);
             return (
-              <label
+              <button
                 key={category.slug}
+                type="button"
+                aria-pressed={checked}
+                onClick={() => toggleCategory(category.slug)}
                 className={`flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
                   checked
                     ? "border-ink bg-ink text-accent"
                     : "border-line text-ink hover:border-ink"
                 }`}
               >
-                <input
-                  type="checkbox"
-                  name="preferredCategories"
-                  value={category.slug}
-                  defaultChecked={checked}
-                  className="sr-only"
-                />
                 {category.label}
-              </label>
+              </button>
             );
           })}
         </div>
+        {selectedCategories.map((slug) => (
+          <input
+            key={slug}
+            type="hidden"
+            name="preferredCategories"
+            value={slug}
+          />
+        ))}
         <p className="mt-2 text-xs text-muted">
-          Auf der Startseite werden diese Kategorien standardmäßig vorausgewählt.
+          Mehrfachauswahl möglich. Auf der Startseite werden diese Kategorien
+          standardmäßig vorausgewählt.
         </p>
       </fieldset>
 

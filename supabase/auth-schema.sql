@@ -11,7 +11,7 @@ create table if not exists public.profiles (
   preferred_categories text[] not null default '{}',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint profiles_username_format check (username ~ '^[a-z0-9_]{3,20}$'),
+  constraint profiles_username_format check (username ~ '^[A-Za-z0-9_]{3,20}$'),
   constraint profiles_business_url_length check (
     business_url is null or char_length(business_url) <= 500
   ),
@@ -89,9 +89,9 @@ as $$
 declare
   raw_username text;
 begin
-  raw_username := lower(trim(coalesce(new.raw_user_meta_data->>'username', '')));
+  raw_username := trim(coalesce(new.raw_user_meta_data->>'username', ''));
 
-  if raw_username !~ '^[a-z0-9_]{3,20}$' then
+  if raw_username !~ '^[A-Za-z0-9_]{3,20}$' then
     raise exception 'Ungültiger Username';
   end if;
 
@@ -120,7 +120,7 @@ security definer
 set search_path = public
 as $$
 begin
-  if lower(trim(name)) !~ '^[a-z0-9_]{3,20}$' then
+  if trim(name) !~ '^[A-Za-z0-9_]{3,20}$' then
     return false;
   end if;
 

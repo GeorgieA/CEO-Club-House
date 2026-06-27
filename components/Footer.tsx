@@ -3,8 +3,9 @@ import Link from "next/link";
 import CookieSettingsLink from "./CookieSettingsLink";
 
 const footerLinks = [
-  { href: "#", label: "Impressum" },
+  { href: "/impressum", label: "Impressum" },
   { href: "/datenschutz", label: "Datenschutz" },
+  { href: "/agb", label: "AGB" },
   { href: "#", label: "Kontakt" },
   { href: "#", label: "Über uns" },
 ];

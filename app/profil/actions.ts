@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { updateProfileSchema } from "@/lib/validation";
+import { checkUsernameAvailable } from "@/lib/username";
 
 export type ProfileActionState = {
   error?: string;
@@ -40,16 +41,13 @@ export async function updateProfile(
     .maybeSingle();
 
   if (currentProfile?.username !== username) {
-    const { data: available, error: rpcError } = await supabase.rpc(
-      "username_available",
-      { name: username },
-    );
+    const check = await checkUsernameAvailable(supabase, username);
 
-    if (rpcError) {
+    if (!check.ok) {
       return { error: "Username-Prüfung fehlgeschlagen." };
     }
 
-    if (!available) {
+    if (!check.available) {
       return { error: "Dieser Username ist bereits vergeben." };
     }
   }

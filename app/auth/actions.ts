@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signInSchema, signUpSchema } from "@/lib/validation";
 import { getSiteUrl } from "@/lib/site";
+import { checkUsernameAvailable } from "@/lib/username";
 
 export type AuthActionState = {
   error?: string;
@@ -18,6 +19,7 @@ export async function signUp(
     email: formData.get("email"),
     password: formData.get("password"),
     username: formData.get("username"),
+    acceptTerms: formData.get("acceptTerms"),
   });
 
   if (!parsed.success) {
@@ -27,17 +29,13 @@ export async function signUp(
   const { email, password, username } = parsed.data;
   const supabase = await createClient();
 
-  const { data: available, error: rpcError } = await supabase.rpc(
-    "username_available",
-    { name: username },
-  );
+  const check = await checkUsernameAvailable(supabase, username);
 
-  if (rpcError) {
-    console.error("[auth] username_available:", rpcError.message);
+  if (!check.ok) {
     return { error: "Username-Prüfung fehlgeschlagen. Bitte erneut versuchen." };
   }
 
-  if (!available) {
+  if (!check.available) {
     return { error: "Dieser Username ist bereits vergeben." };
   }
 
@@ -71,14 +69,16 @@ export async function signIn(
   const parsed = signInSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
+    acceptTerms: formData.get("acceptTerms"),
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Ungültige Eingabe." };
   }
 
+  const { email, password } = parsed.data;
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     if (

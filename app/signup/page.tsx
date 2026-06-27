@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { signUp, type AuthActionState } from "@/app/auth/actions";
+import ConsentCheckbox from "@/components/ConsentCheckbox";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 
@@ -32,12 +33,12 @@ export default function SignUpPage() {
               type="text"
               required
               autoComplete="username"
-              pattern="[a-z0-9_]{3,20}"
+              pattern="[A-Za-z0-9_]{3,20}"
               className="w-full rounded-[10px] border border-line bg-white px-4 py-3 text-ink outline-none focus:border-accent dark:bg-[#181230]"
-              placeholder="max_mustermann"
+              placeholder="MaxMustermann"
             />
             <p className="mt-1 text-xs text-muted">
-              3–20 Zeichen, Kleinbuchstaben, Zahlen, Unterstrich
+              3–20 Zeichen, Buchstaben, Zahlen, Unterstrich
             </p>
           </div>
 
@@ -70,6 +71,8 @@ export default function SignUpPage() {
               className="w-full rounded-[10px] border border-line bg-white px-4 py-3 text-ink outline-none focus:border-accent dark:bg-[#181230]"
             />
           </div>
+
+          <ConsentCheckbox />
 
           {state.error && (
             <p role="alert" className="text-sm font-semibold text-[#dc2626]">

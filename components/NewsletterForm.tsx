@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 
@@ -15,11 +16,22 @@ export default function NewsletterForm() {
     const form = e.currentTarget;
     const email = (form.elements.namedItem("email") as HTMLInputElement).value.trim();
     const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const accepted = (
+      form.elements.namedItem("acceptTerms") as HTMLInputElement
+    )?.checked;
 
     if (!valid) {
       setMessage({
         type: "error",
         text: "Bitte gib eine gültige E-Mail-Adresse ein.",
+      });
+      return;
+    }
+
+    if (!accepted) {
+      setMessage({
+        type: "error",
+        text: "Bitte akzeptiere AGB und Datenschutzerklärung.",
       });
       return;
     }
@@ -78,6 +90,26 @@ export default function NewsletterForm() {
         required
         className="rounded-[10px] border border-line bg-white px-4 py-3 text-[0.95rem] text-ink outline-none transition-[border-color,box-shadow] focus:border-accent focus:shadow-[0_0_0_3px_rgba(255,90,31,0.15)] dark:bg-[#0f0a24]"
       />
+      <label htmlFor="newsletter-accept" className="flex items-start gap-2.5 text-[0.8rem] text-muted">
+        <input
+          id="newsletter-accept"
+          name="acceptTerms"
+          type="checkbox"
+          value="on"
+          className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-accent"
+        />
+        <span>
+          Ich akzeptiere die{" "}
+          <Link href="/agb" target="_blank" className="font-semibold text-accent hover:underline">
+            AGB
+          </Link>{" "}
+          und die{" "}
+          <Link href="/datenschutz" target="_blank" className="font-semibold text-accent hover:underline">
+            Datenschutzerklärung
+          </Link>
+          .
+        </span>
+      </label>
       <button
         type="submit"
         disabled={loading}
