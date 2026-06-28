@@ -43,6 +43,13 @@ const META_PHRASES = [
   "gibt einen einblick",
 ];
 
+/** Beginnt `text` (normalisiert) mit der kompletten Schlagzeile? */
+function startsWithTitle(text: string, title: string): boolean {
+  const t = title.trim().toLowerCase();
+  if (t.length === 0) return false;
+  return text.trim().toLowerCase().startsWith(t);
+}
+
 function isAcceptableSummary(
   summary: string,
   title: string,
@@ -53,6 +60,11 @@ function isAcceptableSummary(
 
   const lower = trimmed.toLowerCase();
   if (META_PHRASES.some((phrase) => lower.includes(phrase))) return false;
+
+  // Beginnt die "Zusammenfassung" wörtlich mit der Schlagzeile, hat Gemini den
+  // Titel nur kopiert (ggf. + Quelle) statt zu erklären. Das ist genau die Art
+  // von "kein Mehrwert"-Meldung, die nicht in die Datenbank soll.
+  if (startsWithTitle(trimmed, title)) return false;
 
   // Nur near-verbatim Wiederholungen der Schlagzeile verwerfen. Eine gute
   // Zusammenfassung einer klaren, kurzen Headline ist zwangsläufig ähnlich –
@@ -68,8 +80,10 @@ function isAcceptableSummary(
 /**
  * Entscheidet, ob ein Artikel echten Mehrwert bietet und gespeichert werden
  * soll. Eine echte Gemini-Zusammenfassung gilt immer als hilfreich. Beim
- * Fallback (Gemini nicht verfügbar/abgelehnt) zählt nur eine inhaltlich
- * tragfähige Originalbeschreibung – reine Titel-Wiederholungen fliegen raus.
+ * Fallback (Gemini nicht verfügbar/abgelehnt) ist die Hürde bewusst hoch: Nur
+ * eine eigenständige Originalbeschreibung mit klarem Zusatzinhalt zählt. Reine
+ * Titel-Wiederholungen (typisch für Google-News-Feeds: "Titel + Quelle") sind
+ * wertlos und fliegen raus – egal wie lang sie sind.
  */
 export function isHelpfulArticle(
   result: SummaryResult,
@@ -79,8 +93,13 @@ export function isHelpfulArticle(
   if (result.ai) return true;
 
   const desc = description.trim();
-  if (desc.length < 80) return false;
-  if (textSimilarity(desc, title) >= 0.7) return false;
+  // Zu dünn für eigenständigen Inhalt.
+  if (desc.length < 120) return false;
+  // Beschreibung beginnt mit der Schlagzeile -> nur Titel + Quelle/Snippet,
+  // kein echter Mehrwert.
+  if (startsWithTitle(desc, title)) return false;
+  // Selbst ohne wörtlichen Anfang: zu nah an der Schlagzeile = kein Mehrwert.
+  if (textSimilarity(desc, title) >= 0.5) return false;
   return true;
 }
 

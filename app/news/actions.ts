@@ -331,6 +331,37 @@ export async function getUserVote(articleId: string): Promise<1 | -1 | null> {
   return (data?.vote as 1 | -1) ?? null;
 }
 
+/**
+ * Lädt die Votes des aktuellen Nutzers für mehrere Artikel auf einmal.
+ * Für die Startseiten-Liste, damit nicht pro Karte ein eigener Request läuft.
+ * Gibt zusätzlich zurück, ob ein Nutzer eingeloggt ist.
+ */
+export async function getUserVotes(
+  articleIds: string[],
+): Promise<{ loggedIn: boolean; votes: Record<string, 1 | -1> }> {
+  const user = await getUser();
+  if (!user) return { loggedIn: false, votes: {} };
+  if (articleIds.length === 0) return { loggedIn: true, votes: {} };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("article_votes")
+    .select("article_id, vote")
+    .eq("user_id", user.id)
+    .in("article_id", articleIds);
+
+  if (error) {
+    console.error("[votes] getUserVotes:", error.message);
+    return { loggedIn: true, votes: {} };
+  }
+
+  const votes: Record<string, 1 | -1> = {};
+  for (const row of data ?? []) {
+    votes[row.article_id as string] = row.vote as 1 | -1;
+  }
+  return { loggedIn: true, votes };
+}
+
 export async function getCommentCount(articleId: string): Promise<number> {
   const supabase = await createClient();
   const { count } = await supabase

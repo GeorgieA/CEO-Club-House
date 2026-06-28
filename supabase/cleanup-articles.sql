@@ -11,7 +11,11 @@ select
   count(*) as gesamt,
   count(*) filter (
     where title ~ '\s+[-–—]\s+[[:alnum:]äöüßÄÖÜ.&]+(\s[[:alnum:]äöüßÄÖÜ.&]+){0,3}$'
-  ) as mit_quelle_im_titel
+  ) as mit_quelle_im_titel,
+  count(*) filter (
+    where left(lower(btrim(summary)), length(btrim(title))) = lower(btrim(title))
+       or length(btrim(coalesce(summary, ''))) < 80
+  ) as ohne_mehrwert
 from public.articles;
 
 -- 1) Automatisierte Aktien-/Finanz-Ticker und SEO-Quellen löschen
@@ -24,7 +28,17 @@ where title ~* '\s[-–—]\s(börse express|boerse express|börse global|boerse
 delete from public.articles
 where title ~* '(wetter|unwetter|hitze|hitzewelle|hitzerekord|temperaturrekord|gewitter|starkregen|hochwasser|überschwemmung|waldbrand|dürre|sturmtief|schneefall|glatteis|dwd|fußball|fussball|bundesliga|champions league|formel 1|olympia|tennis|basketball|handball|radsport|mord|festnahme|polizei|unfall|tötung|brandstiftung|kriminal|staatsanwalt|messerangriff|messerattacke|vermisst|leiche|royals|skandal|promi|schauspieler|sängerin|saengerin|horoskop|lotto|silbereisen|schlager|krebs|ukraine|russland|putin|krieg|militär|militaer|nato|israel|gaza|drohne|rakete|anleitung|schritt.für.schritt|schritt.fuer.schritt|top.10|ratgeber|bewerbung|karriere|lebenslauf|jobsuche|kalenderwoche|meistgelesen|top-artikel|wochenrückblick|wochenrueckblick|sonntagstrend|umfrage|gta 6|kaufen oder verkaufen|aktien-profis|aktientip)';
 
--- 3) Verbleibenden " - Quelle"-Zusatz (1-4 Wörter) aus den Titeln entfernen
+-- 3) Artikel ohne Mehrwert löschen:
+--    a) Die "Zusammenfassung" beginnt mit dem kompletten Titel -> es ist nur
+--       ein Fallback (Titel + Quelle/Snippet), keine echte KI-Umformulierung.
+--       Genau diese Meldungen liefern keinen Mehrwert über die Schlagzeile.
+--    b) Die Zusammenfassung ist zu kurz (< 80 Zeichen), um echten Inhalt zu
+--       transportieren.
+delete from public.articles
+where left(lower(btrim(summary)), length(btrim(title))) = lower(btrim(title))
+   or length(btrim(coalesce(summary, ''))) < 80;
+
+-- 4) Verbleibenden " - Quelle"-Zusatz (1-4 Wörter) aus den Titeln entfernen
 update public.articles
 set title = regexp_replace(
   title,
@@ -33,5 +47,5 @@ set title = regexp_replace(
 )
 where title ~ '\s+[-–—]\s+[[:alnum:]äöüßÄÖÜ.&]+([-\s][[:alnum:]äöüßÄÖÜ.&]+){0,3}$';
 
--- 4) Ergebnis prüfen
+-- 5) Ergebnis prüfen
 select category, count(*) from public.articles group by category order by count(*) desc;

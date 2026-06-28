@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getUserVotes } from "@/app/news/actions";
 import CategoryFilter from "@/components/CategoryFilter";
 import NewsList from "@/components/NewsList";
 import type { NewsCategory, NewsItem } from "@/lib/data";
@@ -22,6 +23,21 @@ export default function NewsFeed({
     initialCategory,
   );
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [userVotes, setUserVotes] = useState<Record<string, 1 | -1>>({});
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const ids = items.map((item) => item.id);
+    let active = true;
+    getUserVotes(ids).then(({ loggedIn, votes }) => {
+      if (!active) return;
+      setIsLoggedIn(loggedIn);
+      setUserVotes(votes);
+    });
+    return () => {
+      active = false;
+    };
+  }, [items]);
 
   const filteredItems = useMemo(() => {
     if (activeCategory) {
@@ -49,7 +65,11 @@ export default function NewsFeed({
         activeCategory={activeCategory}
         onChange={handleCategoryChange}
       />
-      <NewsList items={visibleItems} />
+      <NewsList
+        items={visibleItems}
+        userVotes={userVotes}
+        isLoggedIn={isLoggedIn}
+      />
       {hasMore && (
         <div className="mt-8 flex justify-center">
           <button

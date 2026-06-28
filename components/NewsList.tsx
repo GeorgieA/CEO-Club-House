@@ -1,11 +1,13 @@
 import Link from "next/link";
 import AiBadge from "@/components/AiBadge";
-import { CommentIcon, ThumbDownIcon, ThumbUpIcon } from "@/components/icons";
+import NewsCardReactions from "@/components/NewsCardReactions";
 import { categoryBadgeClasses, type NewsItem } from "@/lib/data";
 import { textSimilarity } from "@/lib/text-similarity";
 
 interface NewsListProps {
   items: NewsItem[];
+  userVotes?: Record<string, 1 | -1>;
+  isLoggedIn?: boolean;
 }
 
 const HEADLINE_SUMMARY_THRESHOLD = 0.92;
@@ -16,7 +18,11 @@ function shouldShowSummary(headline: string, summary: string): boolean {
   return textSimilarity(headline, trimmed) < HEADLINE_SUMMARY_THRESHOLD;
 }
 
-export default function NewsList({ items }: NewsListProps) {
+export default function NewsList({
+  items,
+  userVotes = {},
+  isLoggedIn = false,
+}: NewsListProps) {
   if (items.length === 0) {
     return (
       <section id="aktuell">
@@ -39,10 +45,9 @@ export default function NewsList({ items }: NewsListProps) {
       </p>
       <div className="flex flex-col">
         {items.map((item, index) => (
-          <Link
+          <article
             key={item.id}
-            href={`/news/${item.slug}`}
-            className={`group block border-b border-line py-6 ${
+            className={`group border-b border-line py-6 ${
               index === 0 ? "pt-0" : ""
             }`}
           >
@@ -53,36 +58,26 @@ export default function NewsList({ items }: NewsListProps) {
                 {item.categoryLabel}
               </span>
               <span>{item.time}</span>
-              <span
-                className="ml-0.5 inline-flex items-center gap-1"
-                aria-label={`${item.likeCount ?? 0} Likes`}
-              >
-                <ThumbUpIcon className="h-3.5 w-3.5" />
-                {item.likeCount ?? 0}
-              </span>
-              <span
-                className="inline-flex items-center gap-1"
-                aria-label={`${item.dislikeCount ?? 0} Dislikes`}
-              >
-                <ThumbDownIcon className="h-3.5 w-3.5" />
-                {item.dislikeCount ?? 0}
-              </span>
-              <span
-                className="inline-flex items-center gap-1"
-                aria-label={`${item.commentCount ?? 0} Kommentare`}
-              >
-                <CommentIcon className="h-3.5 w-3.5" />
-                {item.commentCount ?? 0}
-              </span>
+              <NewsCardReactions
+                articleId={item.id}
+                slug={item.slug}
+                initialLikes={item.likeCount ?? 0}
+                initialDislikes={item.dislikeCount ?? 0}
+                commentCount={item.commentCount ?? 0}
+                initialUserVote={userVotes[item.id] ?? null}
+                isLoggedIn={isLoggedIn}
+              />
             </div>
-            <h2 className="mb-2 text-[1.3rem] leading-snug font-bold tracking-[-0.01em] text-ink transition-colors group-hover:text-accent">
-              {item.headline}
-            </h2>
-            {shouldShowSummary(item.headline, item.summary) && (
-              <p className="mb-2.5 text-base text-muted">{item.summary}</p>
-            )}
-            <AiBadge />
-          </Link>
+            <Link href={`/news/${item.slug}`} className="block">
+              <h2 className="mb-2 text-[1.3rem] leading-snug font-bold tracking-[-0.01em] text-ink transition-colors group-hover:text-accent">
+                {item.headline}
+              </h2>
+              {shouldShowSummary(item.headline, item.summary) && (
+                <p className="mb-2.5 text-base text-muted">{item.summary}</p>
+              )}
+              <AiBadge />
+            </Link>
+          </article>
         ))}
       </div>
     </section>
