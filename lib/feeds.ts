@@ -32,8 +32,8 @@ export interface FetchAllFeedsResult {
 export const feedSources: FeedSource[] = [
   // Tech
   {
-    name: "Google News Technologie",
-    url: "https://news.google.com/rss/search?q=Technologie&hl=de&gl=DE&ceid=DE:de",
+    name: "Google News Tech Unternehmen",
+    url: "https://news.google.com/rss/search?q=Technologie+Unternehmen+OR+Software+Startup&hl=de&gl=DE&ceid=DE:de",
     category: "tech",
   },
   {
@@ -54,54 +54,44 @@ export const feedSources: FeedSource[] = [
   // AI
   {
     name: "Google News KI",
-    url: "https://news.google.com/rss/search?q=K%C3%BCnstliche+Intelligenz&hl=de&gl=DE&ceid=DE:de",
+    url: "https://news.google.com/rss/search?q=K%C3%BCnstliche+Intelligenz+Unternehmen&hl=de&gl=DE&ceid=DE:de",
     category: "ai",
   },
   {
     name: "Google News ChatGPT",
-    url: "https://news.google.com/rss/search?q=ChatGPT+OR+OpenAI&hl=de&gl=DE&ceid=DE:de",
+    url: "https://news.google.com/rss/search?q=ChatGPT+OR+OpenAI+OR+Anthropic&hl=de&gl=DE&ceid=DE:de",
     category: "ai",
   },
   {
     name: "Google News Machine Learning",
-    url: "https://news.google.com/rss/search?q=Machine+Learning&hl=de&gl=DE&ceid=DE:de",
+    url: "https://news.google.com/rss/search?q=Machine+Learning+Business&hl=de&gl=DE&ceid=DE:de",
     category: "ai",
   },
   // Business
   {
-    name: "Google News Wirtschaft",
-    url: "https://news.google.com/rss/search?q=Wirtschaft&hl=de&gl=DE&ceid=DE:de",
-    category: "business",
-  },
-  {
     name: "Google News Startups",
-    url: "https://news.google.com/rss/search?q=Startups&hl=de&gl=DE&ceid=DE:de",
+    url: "https://news.google.com/rss/search?q=Startup+Funding+OR+Venture+Capital&hl=de&gl=DE&ceid=DE:de",
     category: "business",
   },
   {
-    name: "Google News Wirtschaft",
-    url: "https://news.google.com/rss/search?q=Wirtschaft+Unternehmen&hl=de&gl=DE&ceid=DE:de",
+    name: "Google News Unternehmen",
+    url: "https://news.google.com/rss/search?q=Unternehmen+Wirtschaft+CEO&hl=de&gl=DE&ceid=DE:de",
     category: "business",
   },
   {
-    name: "Google News Börse",
-    url: "https://news.google.com/rss/search?q=B%C3%B6rse+OR+Aktien&hl=de&gl=DE&ceid=DE:de",
+    name: "Google News M&A",
+    url: "https://news.google.com/rss/search?q=%C3%9Cbernahme+OR+IPO+OR+Finanzierung&hl=de&gl=DE&ceid=DE:de",
     category: "business",
   },
   // Trends (Wirtschaft & Gesellschaft)
   {
     name: "Google News Nachhaltigkeit",
-    url: "https://news.google.com/rss/search?q=Nachhaltigkeit+OR+ESG&hl=de&gl=DE&ceid=DE:de",
+    url: "https://news.google.com/rss/search?q=Nachhaltigkeit+OR+ESG+Unternehmen&hl=de&gl=DE&ceid=DE:de",
     category: "trend",
   },
   {
     name: "Google News Konsum",
-    url: "https://news.google.com/rss/search?q=Konsum+OR+Einzelhandel&hl=de&gl=DE&ceid=DE:de",
-    category: "trend",
-  },
-  {
-    name: "Google News Gesellschaft",
-    url: "https://news.google.com/rss/search?q=Gesellschaft+OR+Demografie&hl=de&gl=DE&ceid=DE:de",
+    url: "https://news.google.com/rss/search?q=Konsum+OR+Einzelhandel+Wirtschaft&hl=de&gl=DE&ceid=DE:de",
     category: "trend",
   },
   {
@@ -110,6 +100,28 @@ export const feedSources: FeedSource[] = [
     category: "trend",
   },
 ];
+
+/** SEO-Farmen und reine Aktien-Tipp-Seiten — keine CEO-relevanten Quellen. */
+const BLOCKED_DOMAINS = [
+  "aktien.news",
+  "ad-hoc-news.de",
+  "ad-hoc-news.com",
+  "boerse-express.com",
+  "boerse-express.de",
+  "kapitalmarkt-informationen.de",
+];
+
+function isBlockedUrl(link: string): boolean {
+  if (!link) return true;
+  try {
+    const host = new URL(link).hostname.replace(/^www\./, "").toLowerCase();
+    return BLOCKED_DOMAINS.some(
+      (domain) => host === domain || host.endsWith(`.${domain}`),
+    );
+  } catch {
+    return false;
+  }
+}
 
 const parser = new Parser({
   timeout: 8000,
@@ -190,7 +202,9 @@ export async function fetchAllFeeds(): Promise<FetchAllFeedsResult> {
   });
 
   return {
-    articles: articles.filter((a) => a.title && a.title !== "Ohne Titel"),
+    articles: articles.filter(
+      (a) => a.title && a.title !== "Ohne Titel" && !isBlockedUrl(a.link),
+    ),
     feedResults,
   };
 }

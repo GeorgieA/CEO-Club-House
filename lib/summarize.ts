@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { textSimilarity } from "./text-similarity";
 
 export interface SummarizeInput {
   id: string;
@@ -14,7 +15,39 @@ function fallbackSummary(description: string, title: string): string {
   return (lastDot > 120 ? cut.slice(0, lastDot + 1) : cut.trim() + " …");
 }
 
-const CHUNK_SIZE = 20;
+const CHUNK_SIZE = 5;
+
+const META_PHRASES = [
+  "der artikel",
+  "dieser artikel",
+  "dieser beitrag",
+  "der beitrag",
+  "der text",
+  "bietet einen überblick",
+  "bietet einen ueberblick",
+  "beschreibt",
+  "stellt dar",
+  "gibt einen einblick",
+];
+
+function isAcceptableSummary(
+  summary: string,
+  title: string,
+  description: string,
+): boolean {
+  const trimmed = summary.trim();
+  if (trimmed.length < 80) return false;
+
+  const lower = trimmed.toLowerCase();
+  if (META_PHRASES.some((phrase) => lower.includes(phrase))) return false;
+
+  if (textSimilarity(trimmed, title) >= 0.7) return false;
+
+  const desc = description.trim();
+  if (desc.length > 0 && textSimilarity(trimmed, desc) >= 0.85) return false;
+
+  return true;
+}
 
 function chunk<T>(items: T[], size: number): T[][] {
   const chunks: T[][] = [];
@@ -35,6 +68,13 @@ async function summarizeChunk(
 
   const prompt = `Du bist Redakteur für ein deutschsprachiges News-Briefing für CEOs und Gründer.
 Fasse jeden der folgenden Artikel in 2-3 prägnanten deutschen Sätzen zusammen. Sachlich, ohne Floskeln, keine Anrede.
+
+WICHTIG:
+- Schreibe NIEMALS Meta-Text wie "Der Artikel beschreibt…", "Dieser Beitrag bietet…" oder "Der Text stellt dar…"
+- Beantworte direkt: Was ist passiert? Wer ist betroffen? Was bedeutet das für Unternehmer?
+- Nenne konkrete Fakten, Zahlen oder Akteure aus dem Input
+- Mindestens 2 vollständige Sätze mit Substanz
+
 Gib ausschließlich gültiges JSON zurück: ein Array von Objekten mit den Feldern "id" und "summary".
 ${instructionsBlock}
 Artikel:
@@ -97,7 +137,13 @@ export async function summarizeArticles(
     for (const chunkResult of chunkResults) {
       if (chunkResult.status === "fulfilled") {
         for (const [id, summary] of chunkResult.value) {
-          result.set(id, summary);
+          const item = items.find((entry) => entry.id === id);
+          if (
+            item &&
+            isAcceptableSummary(summary, item.title, item.description)
+          ) {
+            result.set(id, summary);
+          }
         }
       } else {
         console.warn(

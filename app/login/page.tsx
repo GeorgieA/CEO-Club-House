@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useActionState } from "react";
 import { signIn, type AuthActionState } from "@/app/auth/actions";
-import ConsentCheckbox from "@/components/ConsentCheckbox";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 
@@ -53,8 +52,6 @@ function LoginForm() {
             className="w-full rounded-[10px] border border-line bg-white px-4 py-3 text-ink outline-none focus:border-accent dark:bg-[#181230]"
           />
         </div>
-
-        <ConsentCheckbox />
 
         {state.error && (
           <p role="alert" className="text-sm font-semibold text-[#dc2626]">

@@ -70,6 +70,64 @@ export function rowToNewsItem(row: ArticleRow): NewsItem {
   };
 }
 
+/**
+ * Lädt Like- und Kommentar-Counts für mehrere Artikel in nur zwei Abfragen
+ * (statt einer pro Artikel) und reichert die NewsItems an.
+ *
+ * - Likes: article_votes mit vote=1 (public read via RLS)
+ * - Kommentare: comments mit status='published' (RLS lässt nur published lesen)
+ *
+ * Die Aggregation passiert in JS über eine Map, da der anon-Client kein
+ * GROUP BY ohne RPC anbietet. Bei fehlendem Client (z. B. Build ohne Env)
+ * werden die Items unverändert zurückgegeben.
+ */
+async function withCounts(items: NewsItem[]): Promise<NewsItem[]> {
+  if (items.length === 0) return items;
+
+  const supabase = createSupabaseServerClient();
+  if (!supabase) return items;
+
+  const ids = items.map((item) => item.id);
+
+  const [votesRes, commentsRes] = await Promise.all([
+    supabase
+      .from("article_votes")
+      .select("article_id")
+      .eq("vote", 1)
+      .in("article_id", ids),
+    supabase
+      .from("comments")
+      .select("article_id")
+      .eq("status", "published")
+      .in("article_id", ids),
+  ]);
+
+  if (votesRes.error) {
+    console.error("[articles] withCounts votes:", votesRes.error.message);
+  }
+  if (commentsRes.error) {
+    console.error("[articles] withCounts comments:", commentsRes.error.message);
+  }
+
+  const likeMap = new Map<string, number>();
+  for (const row of votesRes.data ?? []) {
+    const id = row.article_id as string;
+    likeMap.set(id, (likeMap.get(id) ?? 0) + 1);
+  }
+
+  const commentMap = new Map<string, number>();
+  for (const row of commentsRes.data ?? []) {
+    const id = row.article_id as string;
+    commentMap.set(id, (commentMap.get(id) ?? 0) + 1);
+  }
+
+  return items.map((item) => ({
+    ...item,
+    likeCount: likeMap.get(item.id) ?? 0,
+    commentCount: commentMap.get(item.id) ?? 0,
+  }));
+}
+
 export async function getTodayArticleCount(): Promise<number> {
   const supabase = createSupabaseServerClient();
   if (!supabase) return 0;
@@ -151,7 +209,7 @@ export async function getAllArticles(limit = 200): Promise<NewsItem[]> {
     return [];
   }
 
-  return (data as ArticleRow[]).map(rowToNewsItem);
+  return withCounts((data as ArticleRow[]).map(rowToNewsItem));
 }
 
 export async function getArticlesByCategory(
@@ -173,7 +231,7 @@ export async function getArticlesByCategory(
     return [];
   }
 
-  return (data as ArticleRow[]).map(rowToNewsItem);
+  return withCounts((data as ArticleRow[]).map(rowToNewsItem));
 }
 
 export async function getArticleBySlug(slug: string): Promise<ArticleRow | null> {

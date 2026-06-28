@@ -43,6 +43,16 @@ export default function NewsList({ items }: NewsListProps) {
               </span>
               <span>{item.time}</span>
               <span>· {item.source}</span>
+              {(item.likeCount ?? 0) > 0 && (
+                <span aria-label={`${item.likeCount} Likes`}>
+                  · 👍 {item.likeCount}
+                </span>
+              )}
+              {(item.commentCount ?? 0) > 0 && (
+                <span aria-label={`${item.commentCount} Kommentare`}>
+                  · 💬 {item.commentCount}
+                </span>
+              )}
             </div>
             <h2 className="mb-2 text-[1.3rem] leading-snug font-bold tracking-[-0.01em] text-ink transition-colors group-hover:text-accent">
               {item.headline}

@@ -11,6 +11,8 @@ export interface NewsItem {
   summary: string;
   link?: string;
   publishedAt?: string;
+  likeCount?: number;
+  commentCount?: number;
 }
 
 export const categoryLabels: Record<NewsCategory, string> = {

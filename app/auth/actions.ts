@@ -69,7 +69,6 @@ export async function signIn(
   const parsed = signInSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
-    acceptTerms: formData.get("acceptTerms"),
   });
 
   if (!parsed.success) {

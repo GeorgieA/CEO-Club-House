@@ -1,4 +1,5 @@
 import type { NewsCategory } from "./data";
+import { textSimilarity } from "./text-similarity";
 
 const keywordMap: Record<NewsCategory, string[]> = {
   ai: [
@@ -165,6 +166,41 @@ const exclusionKeywords = [
   "saengerin",
   "horoskop",
   "lotto",
+  // Krieg / Geopolitik (ohne direkten Business-Bezug)
+  "ukraine",
+  "russland",
+  "putin",
+  "krieg",
+  "militär",
+  "militaer",
+  "nato",
+  "israel",
+  "gaza",
+  "drohne",
+  "rakete",
+  "frontlinie",
+  // Ratgeber / SEO / How-to
+  "anleitung",
+  "schritt-für-schritt",
+  "schritt fuer schritt",
+  "so geht",
+  "wie man",
+  "top 10",
+  "top-10",
+  "tipps für",
+  "tipps fuer",
+  "ratgeber",
+  "bewerbung",
+  "karriere",
+  "lebenslauf",
+  "jobsuche",
+  // Meta-Aggregatoren
+  "kalenderwoche",
+  "meistgelesen",
+  "top-artikel",
+  "wochenrückblick",
+  "wochenrueckblick",
+  "news der woche",
 ];
 
 function escapeRegExp(value: string): string {
@@ -189,6 +225,16 @@ function isExcluded(title: string, description: string): boolean {
   return exclusionKeywords.some((keyword) => keywordMatches(haystack, keyword));
 }
 
+const MIN_DESCRIPTION_LENGTH = 40;
+const TITLE_REPEAT_THRESHOLD = 0.85;
+
+function hasMeaningfulDescription(title: string, description: string): boolean {
+  const desc = description.trim();
+  if (desc.length < MIN_DESCRIPTION_LENGTH) return false;
+  if (textSimilarity(title, desc) >= TITLE_REPEAT_THRESHOLD) return false;
+  return true;
+}
+
 function matchCategory(haystack: string): NewsCategory | null {
   for (const category of categoryPriority) {
     const hit = keywordMap[category].some((keyword) =>
@@ -202,21 +248,19 @@ function matchCategory(haystack: string): NewsCategory | null {
 export function classifyArticle(
   title: string,
   description: string,
-  feedCategory?: NewsCategory,
+  _feedCategory?: NewsCategory,
 ): NewsCategory | null {
   if (isExcluded(title, description)) {
+    return null;
+  }
+
+  if (!hasMeaningfulDescription(title, description)) {
     return null;
   }
 
   const haystack = `${title} ${description}`.toLowerCase();
   const keywordCategory = matchCategory(haystack);
   if (keywordCategory) return keywordCategory;
-
-  // Fallback auf die Feed-Kategorie nur für themenspezifische Feeds
-  // (ai/business/tech). Die "trend"-Feeds (Gesellschaft, Nachhaltigkeit,
-  // Konsum …) sind zu breit – ohne echten Keyword-Treffer würde dort sonst
-  // beliebige allgemeine News (z. B. Wetter) landen.
-  if (feedCategory && feedCategory !== "trend") return feedCategory;
 
   return null;
 }

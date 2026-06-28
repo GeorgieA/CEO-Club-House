@@ -64,7 +64,6 @@ export const signUpSchema = z.object({
 export const signInSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
-  acceptTerms: consentSchema,
 });
 
 export const updateProfileSchema = z.object({
