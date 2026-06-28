@@ -201,7 +201,7 @@ export default function Comments({ articleId, slug }: CommentsProps) {
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            placeholder="Dein Kommentar … (keine Links erlaubt)"
+            placeholder="Dein Kommentar …"
             maxLength={2000}
             rows={3}
             required
