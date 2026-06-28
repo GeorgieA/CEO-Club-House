@@ -2,21 +2,18 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
-import { addComment, deleteComment, getComments } from "@/app/news/actions";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import CommentItem, { type CommentNode } from "@/components/CommentItem";
+import {
+  addComment,
+  deleteComment,
+  getCommentVoteCounts,
+  getComments,
+  getUserCommentVotes,
+  reportComment,
+  voteComment,
+} from "@/app/news/actions";
 import { createClient } from "@/lib/supabase/client";
-import { relativeTime } from "@/lib/time";
-
-interface CommentRow {
-  id: string;
-  body: string;
-  created_at: string;
-  user_id: string;
-  profiles: {
-    username: string;
-    business_url: string | null;
-  };
-}
 
 interface CommentsProps {
   articleId: string;
@@ -25,27 +22,57 @@ interface CommentsProps {
 
 export default function Comments({ articleId, slug }: CommentsProps) {
   const router = useRouter();
-  const [comments, setComments] = useState<CommentRow[]>([]);
+  const [comments, setComments] = useState<CommentNode[]>([]);
+  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
+  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const refreshComments = useCallback(async () => {
+    const rows = await getComments(articleId);
+    setComments(rows);
+
+    const ids = rows.map((row) => row.id);
+    const [counts, mine] = await Promise.all([
+      getCommentVoteCounts(ids),
+      getUserCommentVotes(ids),
+    ]);
+    setLikeCounts(counts);
+    setLikedIds(new Set(mine));
+  }, [articleId]);
+
   useEffect(() => {
     const supabase = createClient();
-
     supabase.auth.getUser().then(({ data: { user } }) => {
       setIsLoggedIn(!!user);
       setUserId(user?.id ?? null);
     });
+    refreshComments();
+  }, [refreshComments]);
 
-    getComments(articleId).then(setComments);
-  }, [articleId]);
+  const { topLevel, repliesByParent } = useMemo(() => {
+    const tops: CommentNode[] = [];
+    const map = new Map<string, CommentNode[]>();
+    for (const comment of comments) {
+      if (comment.parent_id) {
+        const list = map.get(comment.parent_id) ?? [];
+        list.push(comment);
+        map.set(comment.parent_id, list);
+      } else {
+        tops.push(comment);
+      }
+    }
+    return { topLevel: tops, repliesByParent: map };
+  }, [comments]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setNotice(null);
 
     startTransition(async () => {
       const result = await addComment(articleId, body, slug);
@@ -54,26 +81,96 @@ export default function Comments({ articleId, slug }: CommentsProps) {
         return;
       }
       setBody("");
-      const updated = await getComments(articleId);
-      setComments(updated);
+      await refreshComments();
       router.refresh();
     });
   }
 
-  function handleDelete(commentId: string) {
-    startTransition(async () => {
-      const result = await deleteComment(commentId, slug);
+  const handleReply = useCallback(
+    async (parentId: string, replyBody: string): Promise<boolean> => {
+      setError(null);
+      setNotice(null);
+      if (!isLoggedIn) {
+        router.push("/login");
+        return false;
+      }
+      const result = await addComment(articleId, replyBody, slug, parentId);
       if (result.error) {
         setError(result.error);
+        return false;
+      }
+      await refreshComments();
+      router.refresh();
+      return true;
+    },
+    [articleId, slug, isLoggedIn, router, refreshComments],
+  );
+
+  const handleLike = useCallback(
+    (commentId: string) => {
+      if (!isLoggedIn) {
+        router.push("/login");
         return;
       }
-      setComments((prev) => prev.filter((c) => c.id !== commentId));
-      router.refresh();
-    });
-  }
+      startTransition(async () => {
+        const result = await voteComment(commentId, slug);
+        if (result.error) {
+          setError(result.error);
+          return;
+        }
+        const ids = comments.map((c) => c.id);
+        const [counts, mine] = await Promise.all([
+          getCommentVoteCounts(ids),
+          getUserCommentVotes(ids),
+        ]);
+        setLikeCounts(counts);
+        setLikedIds(new Set(mine));
+      });
+    },
+    [isLoggedIn, slug, comments, router],
+  );
+
+  const handleDelete = useCallback(
+    (commentId: string) => {
+      startTransition(async () => {
+        const result = await deleteComment(commentId, slug);
+        if (result.error) {
+          setError(result.error);
+          return;
+        }
+        await refreshComments();
+        router.refresh();
+      });
+    },
+    [slug, refreshComments, router],
+  );
+
+  const handleReport = useCallback(
+    (commentId: string) => {
+      setError(null);
+      setNotice(null);
+      if (!isLoggedIn) {
+        router.push("/login");
+        return;
+      }
+      startTransition(async () => {
+        const result = await reportComment(commentId);
+        if (result.error) {
+          setError(result.error);
+          return;
+        }
+        setNotice(result.success ?? "Danke, der Kommentar wurde gemeldet.");
+        await refreshComments();
+      });
+    },
+    [isLoggedIn, router, refreshComments],
+  );
 
   return (
-    <section id="kommentare" className="mt-10 scroll-mt-24 border-t border-line pt-8">
+    <section
+      id="kommentare"
+      className="mt-10 scroll-mt-24 border-t border-line pt-8"
+    >
       <p className="mb-4 text-sm font-bold tracking-[0.12em] text-accent uppercase">
         Kommentare ({comments.length})
       </p>
@@ -89,11 +186,6 @@ export default function Comments({ articleId, slug }: CommentsProps) {
             required
             className="w-full resize-y rounded-[10px] border border-line bg-white px-4 py-3 text-ink outline-none focus:border-accent dark:bg-[#181230]"
           />
-          {error && (
-            <p role="alert" className="text-sm font-semibold text-[#dc2626]">
-              {error}
-            </p>
-          )}
           <button
             type="submit"
             disabled={pending || !body.trim()}
@@ -104,47 +196,41 @@ export default function Comments({ articleId, slug }: CommentsProps) {
         </form>
       ) : (
         <p className="mb-8 text-sm text-muted">
-          <Link href="/login" className="font-semibold text-accent hover:underline">
+          <Link
+            href="/login"
+            className="font-semibold text-accent hover:underline"
+          >
             Anmelden
           </Link>
           , um zu kommentieren.
         </p>
       )}
 
+      {error && (
+        <p role="alert" className="mb-4 text-sm font-semibold text-[#dc2626]">
+          {error}
+        </p>
+      )}
+      {notice && (
+        <p className="mb-4 text-sm font-semibold text-accent">{notice}</p>
+      )}
+
       <div className="flex flex-col gap-6">
-        {comments.length === 0 && (
-          <p className="text-sm text-muted">Noch keine Kommentare.</p>
-        )}
-        {comments.map((comment) => (
-          <article
+        {topLevel.map((comment) => (
+          <CommentItem
             key={comment.id}
-            className="rounded-xl border border-line bg-[#fafbfc] p-4 dark:bg-[#181230]"
-          >
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
-              <span className="font-bold text-ink">
-                @{comment.profiles.username}
-              </span>
-              {comment.profiles.business_url && (
-                <span className="text-muted">
-                  · {comment.profiles.business_url}
-                </span>
-              )}
-              <span className="text-muted">
-                · {relativeTime(comment.created_at)}
-              </span>
-            </div>
-            <p className="whitespace-pre-wrap text-ink">{comment.body}</p>
-            {userId === comment.user_id && (
-              <button
-                type="button"
-                onClick={() => handleDelete(comment.id)}
-                disabled={pending}
-                className="mt-2 text-xs font-semibold text-muted transition-colors hover:text-[#dc2626]"
-              >
-                Löschen
-              </button>
-            )}
-          </article>
+            comment={comment}
+            replies={repliesByParent.get(comment.id) ?? []}
+            userId={userId}
+            isLoggedIn={isLoggedIn}
+            likeCounts={likeCounts}
+            likedIds={likedIds}
+            pending={pending}
+            onLike={handleLike}
+            onReply={handleReply}
+            onDelete={handleDelete}
+            onReport={handleReport}
+          />
         ))}
       </div>
     </section>

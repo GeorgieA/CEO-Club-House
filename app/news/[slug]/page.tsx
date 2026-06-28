@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import AiBadge from "@/components/AiBadge";
 import ArticleReactions from "@/components/ArticleReactions";
 import Comments from "@/components/Comments";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import ScrollToTop from "@/components/ScrollToTop";
+import ShareButton from "@/components/ShareButton";
 import { getArticleBySlug, getAllSlugs } from "@/lib/articles";
 import { categoryBadgeClasses, categoryLabels } from "@/lib/data";
 import { defaultOgImage, getOgImageUrl } from "@/lib/seo";
@@ -126,16 +128,28 @@ export default async function NewsArticlePage({ params }: PageProps) {
           {article.title}
         </h1>
 
-        <p className="mb-8 text-lg leading-relaxed text-muted">{article.summary}</p>
+        <div className="mb-8">
+          <p className="mb-3 text-lg leading-relaxed text-muted">
+            {article.summary}
+          </p>
+          <AiBadge />
+        </div>
 
-        <a
-          href={article.source_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex w-full justify-center rounded-[10px] bg-ink px-5 py-3 text-[0.95rem] font-bold text-accent transition-opacity hover:opacity-90 sm:w-auto"
-        >
-          Zur Originalquelle →
-        </a>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <a
+            href={article.source_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex w-full justify-center rounded-[10px] bg-ink px-5 py-3 text-[0.95rem] font-bold text-accent transition-opacity hover:opacity-90 sm:w-auto"
+          >
+            Zur Originalquelle →
+          </a>
+          <ShareButton
+            url={pageUrl}
+            title={article.title}
+            text={article.summary}
+          />
+        </div>
 
         <ArticleReactions articleId={article.id} slug={article.slug} />
         <Comments articleId={article.id} slug={article.slug} />

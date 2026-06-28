@@ -8,6 +8,7 @@ import {
   getVoteCounts,
   voteArticle,
 } from "@/app/news/actions";
+import { CommentIcon, ThumbDownIcon, ThumbUpIcon } from "@/components/icons";
 import { createClient } from "@/lib/supabase/client";
 
 interface ArticleReactionsProps {
@@ -79,7 +80,7 @@ export default function ArticleReactions({ articleId, slug }: ArticleReactionsPr
               : "border-line bg-white text-ink hover:border-ink dark:bg-[#181230]"
           }`}
         >
-          <span aria-hidden>👍</span>
+          <ThumbUpIcon />
           {likes}
         </button>
         <button
@@ -93,14 +94,14 @@ export default function ArticleReactions({ articleId, slug }: ArticleReactionsPr
               : "border-line bg-white text-ink hover:border-ink dark:bg-[#181230]"
           }`}
         >
-          <span aria-hidden>👎</span>
+          <ThumbDownIcon />
           {dislikes}
         </button>
         <a
           href="#kommentare"
           className="flex items-center gap-2 rounded-[10px] border border-line bg-white px-4 py-2 text-sm font-semibold text-ink transition-colors hover:border-ink dark:bg-[#181230]"
         >
-          <span aria-hidden>💬</span>
+          <CommentIcon />
           {commentCount}
         </a>
       </div>

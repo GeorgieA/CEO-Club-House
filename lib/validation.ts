@@ -38,6 +38,11 @@ export const commentBodySchema = z
   .min(1, "Kommentar darf nicht leer sein.")
   .max(2000, "Kommentar darf maximal 2000 Zeichen haben.");
 
+export const reportReasonSchema = z
+  .string()
+  .trim()
+  .max(500, "Grund darf maximal 500 Zeichen haben.");
+
 export const changePasswordSchema = z
   .object({
     password: passwordSchema,
@@ -61,8 +66,13 @@ export const signUpSchema = z.object({
   acceptTerms: consentSchema,
 });
 
+export const loginIdentifierSchema = z
+  .string()
+  .trim()
+  .min(1, "Bitte gib deine E-Mail oder deinen Username ein.");
+
 export const signInSchema = z.object({
-  email: emailSchema,
+  identifier: loginIdentifierSchema,
   password: passwordSchema,
 });
 
@@ -94,6 +104,7 @@ export type CommentWithProfile = {
   body: string;
   created_at: string;
   user_id: string;
+  parent_id: string | null;
   profiles: {
     username: string;
     business_url: string | null;

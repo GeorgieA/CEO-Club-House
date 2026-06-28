@@ -1,8 +1,19 @@
 import Link from "next/link";
+import AiBadge from "@/components/AiBadge";
+import { CommentIcon, ThumbUpIcon } from "@/components/icons";
 import { categoryBadgeClasses, type NewsItem } from "@/lib/data";
+import { textSimilarity } from "@/lib/text-similarity";
 
 interface NewsListProps {
   items: NewsItem[];
+}
+
+const HEADLINE_SUMMARY_THRESHOLD = 0.8;
+
+function shouldShowSummary(headline: string, summary: string): boolean {
+  const trimmed = summary?.trim() ?? "";
+  if (trimmed.length === 0) return false;
+  return textSimilarity(headline, trimmed) < HEADLINE_SUMMARY_THRESHOLD;
 }
 
 export default function NewsList({ items }: NewsListProps) {
@@ -35,29 +46,35 @@ export default function NewsList({ items }: NewsListProps) {
               index === 0 ? "pt-0" : ""
             }`}
           >
-            <div className="mb-2.5 flex items-center gap-2.5 text-[0.85rem] text-muted">
+            <div className="mb-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[0.85rem] text-muted">
               <span
                 className={`rounded-md px-2.5 py-0.5 text-[0.72rem] font-bold uppercase ${categoryBadgeClasses[item.category]}`}
               >
                 {item.categoryLabel}
               </span>
               <span>{item.time}</span>
-              <span>· {item.source}</span>
-              {(item.likeCount ?? 0) > 0 && (
-                <span aria-label={`${item.likeCount} Likes`}>
-                  · 👍 {item.likeCount}
-                </span>
-              )}
-              {(item.commentCount ?? 0) > 0 && (
-                <span aria-label={`${item.commentCount} Kommentare`}>
-                  · 💬 {item.commentCount}
-                </span>
-              )}
+              <span
+                className="ml-0.5 inline-flex items-center gap-1"
+                aria-label={`${item.likeCount ?? 0} Likes`}
+              >
+                <ThumbUpIcon className="h-3.5 w-3.5" />
+                {item.likeCount ?? 0}
+              </span>
+              <span
+                className="inline-flex items-center gap-1"
+                aria-label={`${item.commentCount ?? 0} Kommentare`}
+              >
+                <CommentIcon className="h-3.5 w-3.5" />
+                {item.commentCount ?? 0}
+              </span>
             </div>
             <h2 className="mb-2 text-[1.3rem] leading-snug font-bold tracking-[-0.01em] text-ink transition-colors group-hover:text-accent">
               {item.headline}
             </h2>
-            <p className="text-base text-muted">{item.summary}</p>
+            {shouldShowSummary(item.headline, item.summary) && (
+              <p className="mb-2.5 text-base text-muted">{item.summary}</p>
+            )}
+            <AiBadge />
           </Link>
         ))}
       </div>

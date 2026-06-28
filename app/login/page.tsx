@@ -12,10 +12,17 @@ const initialState: AuthActionState = {};
 function LoginForm() {
   const searchParams = useSearchParams();
   const confirmError = searchParams.get("error") === "confirmation_failed";
+  const resetSuccess = searchParams.get("reset") === "1";
   const [state, formAction, pending] = useActionState(signIn, initialState);
 
   return (
     <>
+      {resetSuccess && (
+        <p role="status" className="mb-4 text-sm font-semibold text-[#15803d]">
+          Passwort geändert. Bitte melde dich an.
+        </p>
+      )}
+
       {confirmError && (
         <p role="alert" className="mb-4 text-sm font-semibold text-[#dc2626]">
           E-Mail-Bestätigung fehlgeschlagen. Bitte registriere dich erneut oder
@@ -25,17 +32,20 @@ function LoginForm() {
 
       <form action={formAction} className="flex flex-col gap-4">
         <div>
-          <label htmlFor="email" className="mb-1 block text-sm font-semibold text-ink">
-            E-Mail
+          <label
+            htmlFor="identifier"
+            className="mb-1 block text-sm font-semibold text-ink"
+          >
+            E-Mail oder Username
           </label>
           <input
-            id="email"
-            name="email"
-            type="email"
+            id="identifier"
+            name="identifier"
+            type="text"
             required
-            autoComplete="email"
+            autoComplete="username"
             className="w-full rounded-[10px] border border-line bg-white px-4 py-3 text-ink outline-none focus:border-accent dark:bg-[#181230]"
-            placeholder="deine@email.de"
+            placeholder="deine@email.de oder username"
           />
         </div>
 
@@ -51,6 +61,14 @@ function LoginForm() {
             autoComplete="current-password"
             className="w-full rounded-[10px] border border-line bg-white px-4 py-3 text-ink outline-none focus:border-accent dark:bg-[#181230]"
           />
+          <p className="mt-2 text-right text-sm">
+            <Link
+              href="/passwort-vergessen"
+              className="font-semibold text-accent hover:underline"
+            >
+              Passwort vergessen?
+            </Link>
+          </p>
         </div>
 
         {state.error && (

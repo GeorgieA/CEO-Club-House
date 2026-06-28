@@ -24,38 +24,28 @@ export default function ImpressumPage() {
         <section className="mb-10">
           <h2 className="mb-3 text-xl font-bold text-ink">Anbieter</h2>
           <p className="text-muted">
-            [Name / Firma]
+            Finity In
             <br />
-            [Straße und Hausnummer]
+            Astrid-Lindgren-Straße 121
             <br />
-            [PLZ und Ort]
+            81829 München
             <br />
-            [Land]
+            Deutschland
           </p>
-        </section>
-
-        <section className="mb-10">
-          <h2 className="mb-3 text-xl font-bold text-ink">Vertreten durch</h2>
-          <p className="text-muted">[Name der vertretungsberechtigten Person]</p>
         </section>
 
         <section className="mb-10">
           <h2 className="mb-3 text-xl font-bold text-ink">Kontakt</h2>
           <p className="text-muted">
-            Telefon: [Telefonnummer]
+            Telefon: +49 89 90 422 62 90
             <br />
-            E-Mail: [kontakt@deine-domain.de]
-          </p>
-        </section>
-
-        <section className="mb-10">
-          <h2 className="mb-3 text-xl font-bold text-ink">
-            Umsatzsteuer-ID
-          </h2>
-          <p className="text-muted">
-            Umsatzsteuer-Identifikationsnummer gemäß § 27 a Umsatzsteuergesetz:
-            <br />
-            [USt-IdNr., falls vorhanden]
+            E-Mail:{" "}
+            <a
+              href="mailto:info@finity-in.com"
+              className="font-semibold text-accent hover:underline"
+            >
+              info@finity-in.com
+            </a>
           </p>
         </section>
 
@@ -64,9 +54,11 @@ export default function ImpressumPage() {
             Redaktionell verantwortlich
           </h2>
           <p className="text-muted">
-            [Name]
+            Finity In
             <br />
-            [Anschrift, falls abweichend]
+            Astrid-Lindgren-Straße 121
+            <br />
+            81829 München
           </p>
         </section>
 
@@ -122,10 +114,6 @@ export default function ImpressumPage() {
           </p>
         </section>
 
-        <p className="text-sm text-muted">
-          Hinweis: Bitte ersetze alle mit [...] markierten Platzhalter durch
-          deine tatsächlichen Anbieterdaten.
-        </p>
       </main>
       <Footer />
       <ScrollToTop />

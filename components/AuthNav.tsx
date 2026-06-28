@@ -54,12 +54,12 @@ export default function AuthNav() {
   }
 
   if (loading) {
-    return <div className="hidden h-9 w-20 md:block" aria-hidden />;
+    return <div className="h-9 w-20" aria-hidden />;
   }
 
   if (username) {
     return (
-      <div className="hidden items-center gap-2 md:flex">
+      <div className="flex items-center gap-2">
         <Link
           href="/profil"
           className="rounded-[10px] border-[1.5px] border-ink bg-ink px-5 py-2.5 text-sm font-bold text-accent transition-opacity hover:opacity-90"
@@ -80,7 +80,7 @@ export default function AuthNav() {
   }
 
   return (
-    <div className="hidden items-center gap-2 md:flex">
+    <div className="flex items-center gap-2">
       <Link
         href="/login"
         className="rounded-[10px] border-[1.5px] border-ink bg-ink px-5 py-2.5 text-sm font-bold text-accent transition-opacity hover:opacity-90"

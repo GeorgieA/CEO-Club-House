@@ -67,7 +67,7 @@ export async function signIn(
   formData: FormData,
 ): Promise<AuthActionState> {
   const parsed = signInSchema.safeParse({
-    email: formData.get("email"),
+    identifier: formData.get("identifier"),
     password: formData.get("password"),
   });
 
@@ -75,8 +75,24 @@ export async function signIn(
     return { error: parsed.error.issues[0]?.message ?? "Ungültige Eingabe." };
   }
 
-  const { email, password } = parsed.data;
+  const { identifier, password } = parsed.data;
   const supabase = await createClient();
+
+  // Username oder E-Mail erkennen. Bei Username serverseitig die zugehörige
+  // E-Mail auflösen (RPC läuft als security definer); E-Mail verlässt den
+  // Server nie Richtung Browser.
+  let email = identifier.toLowerCase();
+  if (!identifier.includes("@")) {
+    const { data, error: rpcError } = await supabase.rpc("email_for_username", {
+      name: identifier,
+    });
+
+    if (rpcError || !data) {
+      return { error: "Username/E-Mail oder Passwort ist falsch." };
+    }
+    email = data as string;
+  }
+
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
@@ -89,7 +105,7 @@ export async function signIn(
           "Bitte bestätige zuerst deine E-Mail-Adresse. Prüfe dein Postfach.",
       };
     }
-    return { error: "E-Mail oder Passwort ist falsch." };
+    return { error: "Username/E-Mail oder Passwort ist falsch." };
   }
 
   redirect("/");

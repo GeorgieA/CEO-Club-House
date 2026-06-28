@@ -34,7 +34,17 @@ export default function Footer() {
           ))}
           <CookieSettingsLink className="text-[0.9rem] text-muted transition-colors hover:text-ink" />
         </nav>
-        <span className="text-[0.85rem] text-muted">© 2026 CEO Clubhouse</span>
+        <span className="flex items-center gap-4 text-[0.85rem] text-muted">
+          <a
+            href="https://www.finity-in.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition-colors hover:text-ink"
+          >
+            Webdesign
+          </a>
+          © 2026 CEO Clubhouse
+        </span>
       </div>
     </footer>
   );
