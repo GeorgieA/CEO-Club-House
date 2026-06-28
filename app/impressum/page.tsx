@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Impressum | CEO Clubhouse",
   description: "Anbieterkennzeichnung und Kontaktinformationen von CEO Clubhouse.",
   robots: { index: true, follow: true },
+  alternates: { canonical: "/impressum" },
 };
 
 export default function ImpressumPage() {

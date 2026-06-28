@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
@@ -13,6 +14,10 @@ import { newsItems as fallbackItems } from "@/lib/data";
 import { getCurrentProfile, getPreferredCategories } from "@/lib/profile";
 
 export const revalidate = 3600;
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 export default async function Home() {
   const [articles, todayCount, trending, profile] = await Promise.all([

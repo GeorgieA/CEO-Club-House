@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   description:
     "Allgemeine Geschäftsbedingungen für die Nutzung von CEO Clubhouse, Konten und Newsletter.",
   robots: { index: true, follow: true },
+  alternates: { canonical: "/agb" },
 };
 
 export default function AgbPage() {

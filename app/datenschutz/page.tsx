@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   description:
     "Informationen zum Datenschutz und zur Verwendung von Cookies bei CEO Clubhouse.",
   robots: { index: true, follow: true },
+  alternates: { canonical: "/datenschutz" },
 };
 
 export default function DatenschutzPage() {

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signOut } from "@/app/auth/actions";
@@ -8,6 +9,11 @@ import ScrollToTop from "@/components/ScrollToTop";
 import { isCurrentUserAdmin } from "@/lib/admin";
 import { createClient, getUser } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/validation";
+
+export const metadata: Metadata = {
+  title: "Mein Profil | CEO Clubhouse",
+  robots: { index: false, follow: false },
+};
 
 export default async function ProfilPage() {
   const user = await getUser();
