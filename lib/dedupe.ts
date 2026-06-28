@@ -46,7 +46,9 @@ function jaccard(a: Set<string>, b: Set<string>): number {
   return intersection / union;
 }
 
-const SIMILARITY_THRESHOLD = 0.6;
+// Niedrigere Schwelle = aggressiveres Dedupe. Schon bei geringerer
+// Titel-Überlappung gilt ein Artikel als dieselbe Story und wird verworfen.
+const SIMILARITY_THRESHOLD = 0.45;
 
 export function dedupeBySimilarity(articles: RawArticle[]): RawArticle[] {
   // Neueste zuerst, damit bei Duplikaten der frischere Artikel bleibt.

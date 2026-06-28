@@ -1,5 +1,4 @@
 import type { NewsCategory } from "./data";
-import { textSimilarity } from "./text-similarity";
 
 const keywordMap: Record<NewsCategory, string[]> = {
   ai: [
@@ -81,6 +80,21 @@ const keywordMap: Record<NewsCategory, string[]> = {
     "quantum",
     "technologie",
     "tech",
+    "meta",
+    "amazon",
+    "tesla",
+    "netflix",
+    "tiktok",
+    "spotify",
+    "datenschutz",
+    "elektroauto",
+    "e-auto",
+    "batterie",
+    "akku",
+    "robotik",
+    "roboter",
+    "rechenzentrum",
+    "datacenter",
   ],
   trend: [
     "nachhaltigkeit",
@@ -201,6 +215,10 @@ const exclusionKeywords = [
   "wochenrückblick",
   "wochenrueckblick",
   "news der woche",
+  // Gesponserte Beiträge / Deals
+  "anzeige",
+  "prime day",
+  "jahresbestpreis",
 ];
 
 function escapeRegExp(value: string): string {
@@ -225,16 +243,6 @@ function isExcluded(title: string, description: string): boolean {
   return exclusionKeywords.some((keyword) => keywordMatches(haystack, keyword));
 }
 
-const MIN_DESCRIPTION_LENGTH = 40;
-const TITLE_REPEAT_THRESHOLD = 0.85;
-
-function hasMeaningfulDescription(title: string, description: string): boolean {
-  const desc = description.trim();
-  if (desc.length < MIN_DESCRIPTION_LENGTH) return false;
-  if (textSimilarity(title, desc) >= TITLE_REPEAT_THRESHOLD) return false;
-  return true;
-}
-
 function matchCategory(haystack: string): NewsCategory | null {
   for (const category of categoryPriority) {
     const hit = keywordMap[category].some((keyword) =>
@@ -254,10 +262,9 @@ export function classifyArticle(
     return null;
   }
 
-  if (!hasMeaningfulDescription(title, description)) {
-    return null;
-  }
-
+  // Viele Quellen (v. a. Google News) liefern als "Beschreibung" nur den Titel
+  // plus Quellenname. Eine sinnvolle Klassifizierung gelingt allein über den
+  // Titel; der Themen-Treffer unten ist der eigentliche Qualitätsfilter.
   const haystack = `${title} ${description}`.toLowerCase();
   const keywordCategory = matchCategory(haystack);
   if (keywordCategory) return keywordCategory;

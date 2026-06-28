@@ -15,6 +15,10 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
+// Obergrenze neuer Artikel pro Lauf. Schützt den Gemini-Summarizer (5er-Chunks
+// parallel) vor Rate-Limits, wenn nach Filter-Anpassungen viele Treffer kommen.
+const MAX_NEW_PER_RUN = 60;
+
 function log(event: string, data: Record<string, unknown>) {
   console.log(JSON.stringify({ event, timestamp: new Date().toISOString(), ...data }));
 }
@@ -95,12 +99,25 @@ export async function GET(request: Request) {
     });
 
     const existingUrls = await getExistingSourceUrls();
-    const fresh = classified.filter(({ article }) => !existingUrls.has(article.link));
+    const freshAll = classified.filter(
+      ({ article }) => !existingUrls.has(article.link),
+    );
+
+    // Neueste zuerst und auf MAX_NEW_PER_RUN begrenzen.
+    const fresh = [...freshAll]
+      .sort(
+        (a, b) =>
+          new Date(b.article.publishedAt).getTime() -
+          new Date(a.article.publishedAt).getTime(),
+      )
+      .slice(0, MAX_NEW_PER_RUN);
 
     log("db.check", {
       existing: existingUrls.size,
+      freshTotal: freshAll.length,
       fresh: fresh.length,
-      skipped: classified.length - fresh.length,
+      cappedBy: freshAll.length - fresh.length,
+      skipped: classified.length - freshAll.length,
     });
 
     if (fresh.length === 0) {
