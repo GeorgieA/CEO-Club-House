@@ -92,8 +92,7 @@ async function withCounts(items: NewsItem[]): Promise<NewsItem[]> {
   const [votesRes, commentsRes] = await Promise.all([
     supabase
       .from("article_votes")
-      .select("article_id")
-      .eq("vote", 1)
+      .select("article_id, vote")
       .in("article_id", ids),
     supabase
       .from("comments")
@@ -110,9 +109,14 @@ async function withCounts(items: NewsItem[]): Promise<NewsItem[]> {
   }
 
   const likeMap = new Map<string, number>();
+  const dislikeMap = new Map<string, number>();
   for (const row of votesRes.data ?? []) {
     const id = row.article_id as string;
-    likeMap.set(id, (likeMap.get(id) ?? 0) + 1);
+    if (row.vote === 1) {
+      likeMap.set(id, (likeMap.get(id) ?? 0) + 1);
+    } else if (row.vote === -1) {
+      dislikeMap.set(id, (dislikeMap.get(id) ?? 0) + 1);
+    }
   }
 
   const commentMap = new Map<string, number>();
@@ -124,6 +128,7 @@ async function withCounts(items: NewsItem[]): Promise<NewsItem[]> {
   return items.map((item) => ({
     ...item,
     likeCount: likeMap.get(item.id) ?? 0,
+    dislikeCount: dislikeMap.get(item.id) ?? 0,
     commentCount: commentMap.get(item.id) ?? 0,
   }));
 }

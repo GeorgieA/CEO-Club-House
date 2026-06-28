@@ -112,22 +112,43 @@ export default function Comments({ articleId, slug }: CommentsProps) {
         router.push("/login");
         return;
       }
+
+      const liked = likedIds.has(commentId);
+
+      // Optimistisches Update: Like sofort umschalten.
+      setLikedIds((prev) => {
+        const next = new Set(prev);
+        if (liked) next.delete(commentId);
+        else next.add(commentId);
+        return next;
+      });
+      setLikeCounts((prev) => ({
+        ...prev,
+        [commentId]: Math.max(0, (prev[commentId] ?? 0) + (liked ? -1 : 1)),
+      }));
+
       startTransition(async () => {
         const result = await voteComment(commentId, slug);
         if (result.error) {
           setError(result.error);
-          return;
+          // Rückrollen.
+          setLikedIds((prev) => {
+            const next = new Set(prev);
+            if (liked) next.add(commentId);
+            else next.delete(commentId);
+            return next;
+          });
+          setLikeCounts((prev) => ({
+            ...prev,
+            [commentId]: Math.max(
+              0,
+              (prev[commentId] ?? 0) + (liked ? 1 : -1),
+            ),
+          }));
         }
-        const ids = comments.map((c) => c.id);
-        const [counts, mine] = await Promise.all([
-          getCommentVoteCounts(ids),
-          getUserCommentVotes(ids),
-        ]);
-        setLikeCounts(counts);
-        setLikedIds(new Set(mine));
       });
     },
-    [isLoggedIn, slug, comments, router],
+    [isLoggedIn, slug, likedIds, router],
   );
 
   const handleDelete = useCallback(

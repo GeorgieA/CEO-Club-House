@@ -28,18 +28,11 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
   return (
     <form action={formAction} className="flex max-w-lg flex-col gap-6">
       <div>
-        <label htmlFor="username" className="mb-1 block text-sm font-semibold text-ink">
-          Username
-        </label>
-        <input
-          id="username"
-          name="username"
-          type="text"
-          required
-          defaultValue={profile.username}
-          pattern="[A-Za-z0-9_]{3,20}"
-          className="w-full rounded-[10px] border border-line bg-white px-4 py-3 text-ink outline-none focus:border-accent dark:bg-[#181230]"
-        />
+        <p className="text-lg font-bold text-ink">Hallo @{profile.username}</p>
+        <p className="mt-1 text-xs text-muted">
+          Dein Username kann aktuell nicht geändert werden.
+        </p>
+        <input type="hidden" name="username" value={profile.username} />
       </div>
 
       <div>

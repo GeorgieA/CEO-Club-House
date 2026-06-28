@@ -1,5 +1,12 @@
+import type { GenerationConfig } from "@google/generative-ai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { textSimilarity } from "./text-similarity";
+
+// Das alte SDK (@google/generative-ai) kennt thinkingConfig nicht in den Typen,
+// reicht zusätzliche Felder aber an die REST-API durch.
+type GenerationConfigWithThinking = GenerationConfig & {
+  thinkingConfig?: { thinkingBudget: number };
+};
 
 export interface SummarizeInput {
   id: string;
@@ -90,7 +97,12 @@ ${items
     generationConfig: {
       responseMimeType: "application/json",
       temperature: 0.3,
-    },
+      // Begrenzt Runaway-Generierung: 5 Artikel à 2-3 Sätze passen locker.
+      maxOutputTokens: 1200,
+      // "Thinking" deaktivieren – für Zusammenfassungen unnötig und teuer.
+      // Das alte SDK kennt das Feld nicht in den Typen, reicht es aber durch.
+      thinkingConfig: { thinkingBudget: 0 },
+    } as GenerationConfigWithThinking,
   });
 
   const text = result.response.text();
@@ -125,7 +137,7 @@ export async function summarizeArticles(
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+    const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash-lite";
     const model = genAI.getGenerativeModel({ model: modelName });
 
     const chunkResults = await Promise.allSettled(

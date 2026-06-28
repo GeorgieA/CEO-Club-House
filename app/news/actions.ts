@@ -62,7 +62,6 @@ export async function voteArticle(
     if (error) return { error: "Vote konnte nicht gespeichert werden." };
   }
 
-  if (slug) revalidatePath(`/news/${slug}`);
   return { success: "ok" };
 }
 
@@ -117,7 +116,7 @@ export async function addComment(
     return { error: moderation.reason };
   }
 
-  const { error } = await supabase.from("comments").insert({
+  let { error } = await supabase.from("comments").insert({
     article_id: articleId,
     user_id: user.id,
     body: parsed.data,
@@ -125,7 +124,22 @@ export async function addComment(
     parent_id: effectiveParent,
   });
 
+  // Fallback, falls die parent_id-Spalte (comments-threads.sql) noch nicht
+  // migriert wurde: ohne parent_id erneut versuchen, statt zu scheitern.
+  if (error && /parent_id/i.test(error.message)) {
+    console.warn(
+      "[comments] parent_id-Spalte fehlt – Insert ohne Threads. Bitte comments-threads.sql ausführen.",
+    );
+    ({ error } = await supabase.from("comments").insert({
+      article_id: articleId,
+      user_id: user.id,
+      body: parsed.data,
+      status: "published",
+    }));
+  }
+
   if (error) {
+    console.error("[comments] addComment:", error.code, error.message);
     return { error: "Kommentar konnte nicht gespeichert werden." };
   }
 
@@ -172,7 +186,6 @@ export async function voteComment(
     if (error) return { error: "Like konnte nicht gespeichert werden." };
   }
 
-  if (slug) revalidatePath(`/news/${slug}`);
   return { success: "ok" };
 }
 

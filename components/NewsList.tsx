@@ -1,6 +1,6 @@
 import Link from "next/link";
 import AiBadge from "@/components/AiBadge";
-import { CommentIcon, ThumbUpIcon } from "@/components/icons";
+import { CommentIcon, ThumbDownIcon, ThumbUpIcon } from "@/components/icons";
 import { categoryBadgeClasses, type NewsItem } from "@/lib/data";
 import { textSimilarity } from "@/lib/text-similarity";
 
@@ -59,6 +59,13 @@ export default function NewsList({ items }: NewsListProps) {
               >
                 <ThumbUpIcon className="h-3.5 w-3.5" />
                 {item.likeCount ?? 0}
+              </span>
+              <span
+                className="inline-flex items-center gap-1"
+                aria-label={`${item.dislikeCount ?? 0} Dislikes`}
+              >
+                <ThumbDownIcon className="h-3.5 w-3.5" />
+                {item.dislikeCount ?? 0}
               </span>
               <span
                 className="inline-flex items-center gap-1"

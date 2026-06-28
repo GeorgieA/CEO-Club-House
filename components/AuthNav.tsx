@@ -1,13 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AuthNav() {
-  const router = useRouter();
-  const pathname = usePathname();
   const [username, setUsername] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -45,14 +42,6 @@ export default function AuthNav() {
     return () => subscription.unsubscribe();
   }, []);
 
-  async function handleSignOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    setUsername(null);
-    router.refresh();
-    router.push("/");
-  }
-
   if (loading) {
     return <div className="h-9 w-20" aria-hidden />;
   }
@@ -66,15 +55,6 @@ export default function AuthNav() {
         >
           @{username}
         </Link>
-        {pathname !== "/profil" && (
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-[#f1f5f9] hover:text-ink"
-          >
-            Abmelden
-          </button>
-        )}
       </div>
     );
   }

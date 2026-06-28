@@ -7,7 +7,6 @@ import Comments from "@/components/Comments";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import ScrollToTop from "@/components/ScrollToTop";
-import ShareButton from "@/components/ShareButton";
 import { getArticleBySlug, getAllSlugs } from "@/lib/articles";
 import { categoryBadgeClasses, categoryLabels } from "@/lib/data";
 import { defaultOgImage, getOgImageUrl } from "@/lib/seo";
@@ -144,14 +143,15 @@ export default async function NewsArticlePage({ params }: PageProps) {
           >
             Zur Originalquelle →
           </a>
-          <ShareButton
-            url={pageUrl}
-            title={article.title}
-            text={article.summary}
-          />
         </div>
 
-        <ArticleReactions articleId={article.id} slug={article.slug} />
+        <ArticleReactions
+          articleId={article.id}
+          slug={article.slug}
+          shareUrl={pageUrl}
+          shareTitle={article.title}
+          shareText={article.summary}
+        />
         <Comments articleId={article.id} slug={article.slug} />
       </article>
       <Footer />

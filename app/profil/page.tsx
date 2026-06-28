@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { signOut } from "@/app/auth/actions";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import ProfileForm from "@/components/ProfileForm";
@@ -74,6 +75,21 @@ export default async function ProfilPage() {
             </Link>
           </div>
         )}
+
+        <div className="mt-10 border-t border-line pt-8">
+          <h2 className="mb-2 text-lg font-bold text-ink">Abmelden</h2>
+          <p className="mb-4 text-sm text-muted">
+            Du wirst von diesem Gerät abgemeldet.
+          </p>
+          <form action={signOut}>
+            <button
+              type="submit"
+              className="inline-block rounded-[10px] border-[1.5px] border-ink px-5 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-ink hover:text-accent"
+            >
+              Abmelden
+            </button>
+          </form>
+        </div>
       </main>
       <Footer />
       <ScrollToTop />

@@ -1,5 +1,11 @@
+import type { GenerationConfig } from "@google/generative-ai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { BLOCKED_WORDS, LINK_PATTERNS } from "@/lib/moderation-words";
+
+// Das alte SDK kennt thinkingConfig nicht in den Typen, reicht es aber durch.
+type GenerationConfigWithThinking = GenerationConfig & {
+  thinkingConfig?: { thinkingBudget: number };
+};
 
 export type ModerationResult =
   | { allowed: true }
@@ -36,7 +42,7 @@ async function moderateWithGemini(text: string): Promise<ModerationResult> {
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+    const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash-lite";
     const model = genAI.getGenerativeModel({ model: modelName });
 
     const prompt = `Du bist Moderator für eine deutschsprachige Business-News-Community.
@@ -60,7 +66,10 @@ ${text.slice(0, 2000)}
       generationConfig: {
         responseMimeType: "application/json",
         temperature: 0,
-      },
+        // Antwort ist winzig ({"allowed":...}); kein Spielraum für Verschwendung.
+        maxOutputTokens: 120,
+        thinkingConfig: { thinkingBudget: 0 },
+      } as GenerationConfigWithThinking,
     });
 
     const parsed = JSON.parse(result.response.text()) as {

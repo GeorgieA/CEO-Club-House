@@ -12,6 +12,7 @@ export interface NewsItem {
   link?: string;
   publishedAt?: string;
   likeCount?: number;
+  dislikeCount?: number;
   commentCount?: number;
 }
 

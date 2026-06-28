@@ -9,14 +9,24 @@ import {
   voteArticle,
 } from "@/app/news/actions";
 import { CommentIcon, ThumbDownIcon, ThumbUpIcon } from "@/components/icons";
+import ShareButton from "@/components/ShareButton";
 import { createClient } from "@/lib/supabase/client";
 
 interface ArticleReactionsProps {
   articleId: string;
   slug: string;
+  shareUrl: string;
+  shareTitle: string;
+  shareText?: string;
 }
 
-export default function ArticleReactions({ articleId, slug }: ArticleReactionsProps) {
+export default function ArticleReactions({
+  articleId,
+  slug,
+  shareUrl,
+  shareTitle,
+  shareText,
+}: ArticleReactionsProps) {
   const router = useRouter();
   const [likes, setLikes] = useState(0);
   const [dislikes, setDislikes] = useState(0);
@@ -47,18 +57,40 @@ export default function ArticleReactions({ articleId, slug }: ArticleReactionsPr
       return;
     }
 
+    const prev = { likes, dislikes, userVote };
+
+    // Optimistisches Update: lokalen Zustand sofort anpassen.
+    let nextLikes = likes;
+    let nextDislikes = dislikes;
+    let nextVote: 1 | -1 | null;
+
+    if (userVote === vote) {
+      nextVote = null;
+      if (vote === 1) nextLikes -= 1;
+      else nextDislikes -= 1;
+    } else {
+      nextVote = vote;
+      if (vote === 1) {
+        nextLikes += 1;
+        if (userVote === -1) nextDislikes -= 1;
+      } else {
+        nextDislikes += 1;
+        if (userVote === 1) nextLikes -= 1;
+      }
+    }
+
+    setLikes(nextLikes);
+    setDislikes(nextDislikes);
+    setUserVote(nextVote);
+
     startTransition(async () => {
       const result = await voteArticle(articleId, vote, slug);
-      if (result.error) return;
-
-      const [counts, currentVote] = await Promise.all([
-        getVoteCounts(articleId),
-        getUserVote(articleId),
-      ]);
-      setLikes(counts.likes);
-      setDislikes(counts.dislikes);
-      setUserVote(currentVote);
-      router.refresh();
+      if (result.error) {
+        // Bei Fehler zurückrollen.
+        setLikes(prev.likes);
+        setDislikes(prev.dislikes);
+        setUserVote(prev.userVote);
+      }
     });
   }
 
@@ -68,7 +100,7 @@ export default function ArticleReactions({ articleId, slug }: ArticleReactionsPr
         Reaktionen
       </p>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
           disabled={pending}
@@ -104,6 +136,7 @@ export default function ArticleReactions({ articleId, slug }: ArticleReactionsPr
           <CommentIcon />
           {commentCount}
         </a>
+        <ShareButton url={shareUrl} title={shareTitle} text={shareText} />
       </div>
     </section>
   );
