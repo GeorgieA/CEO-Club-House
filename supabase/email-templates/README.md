@@ -21,7 +21,7 @@ Diese HTML-Templates sind im CEO-Clubhouse-CI gestaltet (Ink `#190046`, Accent `
 
 - **Confirm signup** nutzt den eigenen Bestätigungs-Pfad mit **fest
   eingetragener** CEO-Domain:
-  `https://ceo-club-house.vercel.app/auth/confirm?token_hash={{ .TokenHash }}&type=email`
+  `https://www.ceo-club-house.de/auth/confirm?token_hash={{ .TokenHash }}&type=email`
   (passend zur Route `app/auth/confirm/route.ts`). Die Domain ist bewusst
   hartkodiert (statt `{{ .SiteURL }}`), damit der Bestätigungslink auch dann zu
   CEO Clubhouse führt, wenn das Supabase-Projekt mit einer anderen App geteilt
@@ -31,22 +31,22 @@ Diese HTML-Templates sind im CEO-Clubhouse-CI gestaltet (Ink `#190046`, Accent `
   Diese wird von Supabase aus der **Site URL** des Projekts erzeugt — zeigt die
   Site URL auf die falsche App, landen Passwort-Reset/Magic-Link/Invite/E-Mail-
   Änderung ebenfalls dort. Deshalb in **Authentication → URL Configuration** die
-  Site URL auf `https://ceo-club-house.vercel.app` setzen (siehe unten).
+  Site URL auf `https://www.ceo-club-house.de` setzen (siehe unten).
 
 ## Site URL korrekt setzen (wichtig!)
 
 Damit alle Auth-Links in der richtigen App landen:
 
 1. Supabase-Dashboard → **Authentication → URL Configuration**
-2. **Site URL**: `https://ceo-club-house.vercel.app`
-3. **Redirect URLs**: `https://ceo-club-house.vercel.app/**` und
+2. **Site URL**: `https://www.ceo-club-house.de`
+3. **Redirect URLs**: `https://www.ceo-club-house.de/**` und
    `http://localhost:3000/**`
 4. **Save**
 
 Hinweis: Die Site URL gilt **pro Supabase-Projekt**. Wenn CEO Clubhouse und eine
 andere App (z. B. Finity CRM) dasselbe Projekt nutzen, kann es nur eine Site URL
 geben — dann braucht jede App ein eigenes Supabase-Projekt.
-- Das Logo wird absolut von `https://ceo-club-house.vercel.app/logo.png`
+- Das Logo wird absolut von `https://www.ceo-club-house.de/logo.png`
   geladen. Bei eigener Domain (z. B. `www.ceo-club-house.de`) die Bild-URL
   in den Templates entsprechend anpassen.
 

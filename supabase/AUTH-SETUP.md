@@ -15,9 +15,9 @@ Im **SQL Editor** den Inhalt von `supabase/auth-schema.sql` einfügen und ausfü
 ## 3. URL-Konfiguration
 
 1. **Authentication** → **URL Configuration**
-2. **Site URL:** `https://ceo-club-house.vercel.app`
+2. **Site URL:** `https://www.ceo-club-house.de`
 3. **Redirect URLs** hinzufügen:
-   - `https://ceo-club-house.vercel.app/auth/confirm`
+   - `https://www.ceo-club-house.de/auth/confirm`
    - `http://localhost:3000/auth/confirm`
 4. Speichern
 

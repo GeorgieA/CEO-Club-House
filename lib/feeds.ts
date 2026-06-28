@@ -160,7 +160,7 @@ const parser = new Parser({
   timeout: 8000,
   headers: {
     "User-Agent":
-      "Mozilla/5.0 (compatible; CEOClubhouseBot/1.0; +https://ceo-club-house.vercel.app)",
+      "Mozilla/5.0 (compatible; CEOClubhouseBot/1.0; +https://www.ceo-club-house.de)",
   },
 });
 
