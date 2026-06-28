@@ -123,6 +123,39 @@ function isBlockedUrl(link: string): boolean {
   }
 }
 
+/**
+ * Automatisierte Aktien-/Finanz-Ticker und SEO-Seiten. Da Google-News-Links
+ * über news.google.com laufen, greift die Domain-Sperre dort nicht – deshalb
+ * filtern wir zusätzlich über den (aus dem Titel extrahierten) Publisher.
+ */
+const BLOCKED_PUBLISHERS = [
+  "börse express",
+  "boerse express",
+  "börse global",
+  "boerse global",
+  "börse online",
+  "boerse online",
+  "börse-online",
+  "aktien.news",
+  "ad-hoc-news",
+  "marketscreener",
+  "investing.com",
+  "wallstreet-online",
+  "wallstreet online",
+  "finanztrends",
+  "4investors",
+  "der aktionär",
+  "der aktionaer",
+  "finanzen.net",
+  "finanznachrichten",
+  "boersengefluester",
+];
+
+function isBlockedPublisher(source: string): boolean {
+  const normalized = source.toLowerCase();
+  return BLOCKED_PUBLISHERS.some((publisher) => normalized.includes(publisher));
+}
+
 const parser = new Parser({
   timeout: 8000,
   headers: {
@@ -145,18 +178,50 @@ function stripHtml(input: string | undefined): string {
     .trim();
 }
 
+/**
+ * Google News hängt an jeden Titel " - Publisher" an. Das gehört nicht in die
+ * Headline. Wir trennen den Publisher ab und nutzen ihn als echte Quelle.
+ */
+function splitTitleAndPublisher(rawTitle: string): {
+  title: string;
+  publisher: string | null;
+} {
+  const idx = rawTitle.lastIndexOf(" - ");
+  if (idx > 20) {
+    const publisher = rawTitle.slice(idx + 3).trim();
+    const isPlausiblePublisher =
+      publisher.length > 0 &&
+      publisher.length <= 50 &&
+      !/[.!?:]$/.test(publisher) &&
+      publisher.split(/\s+/).length <= 6;
+    if (isPlausiblePublisher) {
+      return { title: rawTitle.slice(0, idx).trim(), publisher };
+    }
+  }
+  return { title: rawTitle, publisher: null };
+}
+
 async function fetchFeed(source: FeedSource): Promise<RawArticle[]> {
   const feed = await parser.parseURL(source.url);
-  return (feed.items ?? []).map((item) => ({
-    title: stripHtml(item.title) || "Ohne Titel",
-    description: stripHtml(
-      item.contentSnippet || item.content || item.summary || "",
-    ).slice(0, 600),
-    link: item.link ?? "",
-    source: source.name,
-    publishedAt: item.isoDate ?? item.pubDate ?? new Date().toISOString(),
-    feedCategory: source.category,
-  }));
+  const isGoogleNews = source.url.includes("news.google.com");
+
+  return (feed.items ?? []).map((item) => {
+    const rawTitle = stripHtml(item.title) || "Ohne Titel";
+    const { title, publisher } = isGoogleNews
+      ? splitTitleAndPublisher(rawTitle)
+      : { title: rawTitle, publisher: null };
+
+    return {
+      title: title || "Ohne Titel",
+      description: stripHtml(
+        item.contentSnippet || item.content || item.summary || "",
+      ).slice(0, 600),
+      link: item.link ?? "",
+      source: publisher ?? source.name,
+      publishedAt: item.isoDate ?? item.pubDate ?? new Date().toISOString(),
+      feedCategory: source.category,
+    };
+  });
 }
 
 export async function fetchAllFeeds(): Promise<FetchAllFeedsResult> {
@@ -203,7 +268,11 @@ export async function fetchAllFeeds(): Promise<FetchAllFeedsResult> {
 
   return {
     articles: articles.filter(
-      (a) => a.title && a.title !== "Ohne Titel" && !isBlockedUrl(a.link),
+      (a) =>
+        a.title &&
+        a.title !== "Ohne Titel" &&
+        !isBlockedUrl(a.link) &&
+        !isBlockedPublisher(a.source),
     ),
     feedResults,
   };

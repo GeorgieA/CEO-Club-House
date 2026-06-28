@@ -9,7 +9,7 @@ import { classifyArticle } from "@/lib/categorize";
 import { dedupeBySimilarity } from "@/lib/dedupe";
 import { fetchAllFeeds } from "@/lib/feeds";
 import { getGeminiInstructions } from "@/lib/settings";
-import { summarizeArticles } from "@/lib/summarize";
+import { isHelpfulArticle, summarizeArticles } from "@/lib/summarize";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -164,15 +164,62 @@ export async function GET(request: Request) {
       durationMs: Date.now() - summarizeStartedAt,
     });
 
-    const rows: ArticleInsert[] = prepared.map(({ article, id, category }) => ({
-      title: article.title,
-      slug: slugify(article.title, article.link),
-      summary: summaries.get(id) ?? article.description,
-      category,
-      source: article.source,
-      source_url: article.link,
-      published_at: article.publishedAt,
-    }));
+    // Qualitätsfilter: nur Artikel mit einer echten, hilfreichen
+    // Zusammenfassung behalten. Kryptische Headlines ohne Mehrwert fliegen raus.
+    const helpful = prepared
+      .map(({ article, id, category }) => ({
+        article,
+        id,
+        category,
+        result: summaries.get(id) ?? { summary: article.description, ai: false },
+      }))
+      .filter(({ result, article }) =>
+        isHelpfulArticle(result, article.title, article.description),
+      );
+
+    const rejectedUnhelpful = prepared.length - helpful.length;
+
+    log("filter.helpful", {
+      candidates: prepared.length,
+      kept: helpful.length,
+      rejected: rejectedUnhelpful,
+    });
+
+    if (helpful.length === 0) {
+      log("ingest.done", {
+        inserted: 0,
+        skipped: classified.length - fresh.length,
+        candidates: fresh.length,
+        rejectedByCategory,
+        rejectedUnhelpful,
+        feedsFailed,
+        durationMs: Date.now() - startedAt,
+      });
+
+      return NextResponse.json({
+        ok: true,
+        inserted: 0,
+        skipped: classified.length - fresh.length,
+        candidates: fresh.length,
+        rejectedByCategory,
+        rejectedUnhelpful,
+        message: "Keine Artikel mit hilfreicher Zusammenfassung.",
+        feedsFailed,
+        durationMs: Date.now() - startedAt,
+      });
+    }
+
+    const rows: ArticleInsert[] = helpful.map(
+      ({ article, result, category }) => ({
+        title: article.title,
+        slug: slugify(article.title, article.link),
+        summary: result.summary,
+        category,
+        source: article.source,
+        source_url: article.link,
+        published_at: article.publishedAt,
+      }),
+    );
 
     const inserted = await insertArticles(rows);
 
@@ -181,6 +228,7 @@ export async function GET(request: Request) {
       skipped: classified.length - fresh.length,
       candidates: fresh.length,
       rejectedByCategory,
+      rejectedUnhelpful,
       feedsFailed,
       durationMs: Date.now() - startedAt,
     });
@@ -191,6 +239,7 @@ export async function GET(request: Request) {
       skipped: classified.length - fresh.length,
       candidates: fresh.length,
       rejectedByCategory,
+      rejectedUnhelpful,
       feedsFailed,
       durationMs: Date.now() - startedAt,
     });

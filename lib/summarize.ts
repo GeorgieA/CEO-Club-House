@@ -14,6 +14,12 @@ export interface SummarizeInput {
   description: string;
 }
 
+export interface SummaryResult {
+  summary: string;
+  /** true = echte, von Gemini erzeugte Zusammenfassung; false = Fallback. */
+  ai: boolean;
+}
+
 function fallbackSummary(description: string, title: string): string {
   const base = description?.trim() || title.trim();
   if (base.length <= 220) return base;
@@ -48,11 +54,33 @@ function isAcceptableSummary(
   const lower = trimmed.toLowerCase();
   if (META_PHRASES.some((phrase) => lower.includes(phrase))) return false;
 
-  if (textSimilarity(trimmed, title) >= 0.7) return false;
+  // Nur near-verbatim Wiederholungen der Schlagzeile verwerfen. Eine gute
+  // Zusammenfassung einer klaren, kurzen Headline ist zwangsläufig ähnlich –
+  // deshalb hier bewusst tolerant.
+  if (textSimilarity(trimmed, title) >= 0.85) return false;
 
   const desc = description.trim();
-  if (desc.length > 0 && textSimilarity(trimmed, desc) >= 0.85) return false;
+  if (desc.length > 0 && textSimilarity(trimmed, desc) >= 0.9) return false;
 
+  return true;
+}
+
+/**
+ * Entscheidet, ob ein Artikel echten Mehrwert bietet und gespeichert werden
+ * soll. Eine echte Gemini-Zusammenfassung gilt immer als hilfreich. Beim
+ * Fallback (Gemini nicht verfügbar/abgelehnt) zählt nur eine inhaltlich
+ * tragfähige Originalbeschreibung – reine Titel-Wiederholungen fliegen raus.
+ */
+export function isHelpfulArticle(
+  result: SummaryResult,
+  title: string,
+  description: string,
+): boolean {
+  if (result.ai) return true;
+
+  const desc = description.trim();
+  if (desc.length < 80) return false;
+  if (textSimilarity(desc, title) >= 0.7) return false;
   return true;
 }
 
@@ -119,10 +147,13 @@ ${items
 export async function summarizeArticles(
   items: SummarizeInput[],
   extraInstructions = "",
-): Promise<Map<string, string>> {
-  const result = new Map<string, string>();
+): Promise<Map<string, SummaryResult>> {
+  const result = new Map<string, SummaryResult>();
   for (const item of items) {
-    result.set(item.id, fallbackSummary(item.description, item.title));
+    result.set(item.id, {
+      summary: fallbackSummary(item.description, item.title),
+      ai: false,
+    });
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
@@ -154,7 +185,7 @@ export async function summarizeArticles(
             item &&
             isAcceptableSummary(summary, item.title, item.description)
           ) {
-            result.set(id, summary);
+            result.set(id, { summary, ai: true });
           }
         }
       } else {

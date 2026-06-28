@@ -8,7 +8,7 @@ interface NewsListProps {
   items: NewsItem[];
 }
 
-const HEADLINE_SUMMARY_THRESHOLD = 0.8;
+const HEADLINE_SUMMARY_THRESHOLD = 0.92;
 
 function shouldShowSummary(headline: string, summary: string): boolean {
   const trimmed = summary?.trim() ?? "";
