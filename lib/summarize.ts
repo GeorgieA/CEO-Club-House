@@ -125,8 +125,10 @@ ${items
     generationConfig: {
       responseMimeType: "application/json",
       temperature: 0.3,
-      // Begrenzt Runaway-Generierung: 5 Artikel à 2-3 Sätze passen locker.
-      maxOutputTokens: 1200,
+      // Großzügig bemessen: deutsche Zusammenfassungen brauchen ~2-3 Zeichen pro
+      // Token. Bei zu kleinem Budget wird das JSON mitten im String abgeschnitten
+      // und der ganze Chunk fällt auf den Fallback zurück.
+      maxOutputTokens: 4096,
       // "Thinking" deaktivieren – für Zusammenfassungen unnötig und teuer.
       // Das alte SDK kennt das Feld nicht in den Typen, reicht es aber durch.
       thinkingConfig: { thinkingBudget: 0 },
@@ -134,14 +136,40 @@ ${items
   });
 
   const text = result.response.text();
-  const parsed = JSON.parse(text) as Array<{ id: string; summary: string }>;
+  return parseSummaryJson(text);
+}
+
+/**
+ * Tolerant gegenüber abgeschnittenem JSON: Versucht zuerst regulär zu parsen
+ * und rettet andernfalls alle vollständigen {id, summary}-Objekte per Regex.
+ * So gehen bei einer abgeschnittenen Antwort nicht alle Einträge verloren.
+ */
+function parseSummaryJson(text: string): Map<string, string> {
   const map = new Map<string, string>();
-  for (const entry of parsed) {
-    if (entry?.id && entry?.summary) {
-      map.set(String(entry.id), entry.summary.trim());
+
+  const add = (id: unknown, summary: unknown) => {
+    if (typeof id === "string" && typeof summary === "string" && summary.trim()) {
+      map.set(id, summary.trim());
     }
+  };
+
+  try {
+    const parsed = JSON.parse(text) as Array<{ id: string; summary: string }>;
+    for (const entry of parsed) add(entry?.id, entry?.summary);
+    return map;
+  } catch {
+    // Fallback: vollständige Objekte aus (evtl. abgeschnittenem) JSON extrahieren.
+    const objectRegex =
+      /\{\s*"id"\s*:\s*"((?:[^"\\]|\\.)*)"\s*,\s*"summary"\s*:\s*"((?:[^"\\]|\\.)*)"\s*\}/g;
+    for (const match of text.matchAll(objectRegex)) {
+      try {
+        add(JSON.parse(`"${match[1]}"`), JSON.parse(`"${match[2]}"`));
+      } catch {
+        add(match[1], match[2]);
+      }
+    }
+    return map;
   }
-  return map;
 }
 
 export async function summarizeArticles(
