@@ -19,6 +19,7 @@ export const metadata: Metadata = {
   description:
     "KI-zusammengefasste Nachrichten aus Tech, Business und Trends. Täglich. Kostenlos.",
   metadataBase: new URL(siteUrl),
+  alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     locale: "de_DE",
