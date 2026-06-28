@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import AdminDeleteArticle from "@/components/AdminDeleteArticle";
 import AiBadge from "@/components/AiBadge";
 import ArticleReactions from "@/components/ArticleReactions";
 import Comments from "@/components/Comments";
@@ -152,6 +153,9 @@ export default async function NewsArticlePage({ params }: PageProps) {
           shareTitle={article.title}
           shareText={article.summary}
         />
+
+        <AdminDeleteArticle articleId={article.id} slug={article.slug} />
+
         <Comments articleId={article.id} slug={article.slug} />
       </article>
       <Footer />

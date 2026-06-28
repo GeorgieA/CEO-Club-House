@@ -1,14 +1,57 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { isCurrentUserAdmin } from "@/lib/admin";
 import { moderateComment } from "@/lib/moderation";
 import { createClient, getUser } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { commentBodySchema, reportReasonSchema } from "@/lib/validation";
 
 export type ActionResult = {
   error?: string;
   success?: string;
 };
+
+/** Clientseitige Admin-Prüfung, damit die Artikelseite statisch bleiben kann. */
+export async function checkIsAdmin(): Promise<boolean> {
+  return isCurrentUserAdmin();
+}
+
+/**
+ * Löscht einen kompletten Artikel. Nur für Admins. Läuft über den
+ * service_role-Client; zugehörige Likes und Kommentare entfernt die
+ * Datenbank per ON DELETE CASCADE automatisch mit.
+ */
+export async function deleteArticle(
+  articleId: string,
+  slug?: string,
+): Promise<ActionResult> {
+  const user = await getUser();
+  if (!user || !(await isCurrentUserAdmin())) {
+    return { error: "Kein Zugriff." };
+  }
+
+  if (!articleId) {
+    return { error: "Ungültiger Artikel." };
+  }
+
+  try {
+    const admin = getSupabaseAdmin();
+    const { error } = await admin.from("articles").delete().eq("id", articleId);
+
+    if (error) {
+      console.error("[admin] deleteArticle:", error.message);
+      return { error: "Artikel konnte nicht gelöscht werden." };
+    }
+  } catch (error) {
+    console.error("[admin] deleteArticle:", error);
+    return { error: "Artikel konnte nicht gelöscht werden." };
+  }
+
+  revalidatePath("/");
+  if (slug) revalidatePath(`/news/${slug}`);
+  return { success: "Artikel gelöscht." };
+}
 
 const RATE_LIMIT = 5;
 const RATE_WINDOW_MS = 60_000;
