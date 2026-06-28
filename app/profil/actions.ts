@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { setSubscription } from "@/lib/newsletter";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { updateProfileSchema } from "@/lib/validation";
 import { checkUsernameAvailable } from "@/lib/username";
@@ -73,6 +74,11 @@ export async function updateProfile(
     }
     console.error("[profil] updateProfile:", error.code, error.message);
     return { error: "Profil konnte nicht gespeichert werden." };
+  }
+
+  if (user.email) {
+    const wantsNewsletter = formData.get("newsletter") === "on";
+    await setSubscription(user.email, wantsNewsletter);
   }
 
   revalidatePath("/profil");

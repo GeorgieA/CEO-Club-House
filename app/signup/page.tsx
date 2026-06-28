@@ -35,7 +35,7 @@ export default function SignUpPage() {
               autoComplete="username"
               pattern="[A-Za-z0-9_]{3,20}"
               className="w-full rounded-[10px] border border-line bg-white px-4 py-3 text-ink outline-none focus:border-accent dark:bg-[#181230]"
-              placeholder="MaxMustermann"
+              placeholder="Username"
             />
             <p className="mt-1 text-xs text-muted">
               3–20 Zeichen, Buchstaben, Zahlen, Unterstrich
@@ -71,6 +71,23 @@ export default function SignUpPage() {
               className="w-full rounded-[10px] border border-line bg-white px-4 py-3 text-ink outline-none focus:border-accent dark:bg-[#181230]"
             />
           </div>
+
+          <label
+            htmlFor="newsletter"
+            className="flex items-start gap-2.5 text-sm text-muted"
+          >
+            <input
+              id="newsletter"
+              name="newsletter"
+              type="checkbox"
+              value="on"
+              className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-accent"
+            />
+            <span>
+              Ja, ich möchte das kostenlose CEO-Clubhouse-Briefing per E-Mail
+              erhalten. (optional)
+            </span>
+          </label>
 
           <ConsentCheckbox />
 

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 
@@ -31,7 +30,7 @@ export default function NewsletterForm() {
     if (!accepted) {
       setMessage({
         type: "error",
-        text: "Bitte akzeptiere AGB und Datenschutzerklärung.",
+        text: "Bitte erlaube uns, dir E-Mails zu schicken.",
       });
       return;
     }
@@ -98,17 +97,7 @@ export default function NewsletterForm() {
           value="on"
           className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-accent"
         />
-        <span>
-          Ich akzeptiere die{" "}
-          <Link href="/agb" target="_blank" className="font-semibold text-accent hover:underline">
-            AGB
-          </Link>{" "}
-          und die{" "}
-          <Link href="/datenschutz" target="_blank" className="font-semibold text-accent hover:underline">
-            Datenschutzerklärung
-          </Link>
-          .
-        </span>
+        <span>Ich erlaube CEO Club House mir Emails zu schicken.</span>
       </label>
       <button
         type="submit"

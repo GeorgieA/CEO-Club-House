@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { subscribe } from "@/lib/newsletter";
 import { createClient } from "@/lib/supabase/server";
 import { signInSchema, signUpSchema } from "@/lib/validation";
 import { getSiteUrl } from "@/lib/site";
@@ -27,6 +28,7 @@ export async function signUp(
   }
 
   const { email, password, username } = parsed.data;
+  const wantsNewsletter = formData.get("newsletter") === "on";
   const supabase = await createClient();
 
   const check = await checkUsernameAvailable(supabase, username);
@@ -54,6 +56,10 @@ export async function signUp(
       return { error: "Diese E-Mail ist bereits registriert." };
     }
     return { error: error.message };
+  }
+
+  if (wantsNewsletter) {
+    await subscribe(email);
   }
 
   return {

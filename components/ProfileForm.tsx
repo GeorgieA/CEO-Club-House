@@ -9,9 +9,10 @@ const initialState: ProfileActionState = {};
 
 interface ProfileFormProps {
   profile: Profile;
+  subscribed: boolean;
 }
 
-export default function ProfileForm({ profile }: ProfileFormProps) {
+export default function ProfileForm({ profile, subscribed }: ProfileFormProps) {
   const [state, formAction, pending] = useActionState(updateProfile, initialState);
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
     profile.preferred_categories,
@@ -89,6 +90,28 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
           Mehrfachauswahl möglich. Auf der Startseite werden diese Kategorien
           standardmäßig vorausgewählt.
         </p>
+      </fieldset>
+
+      <fieldset>
+        <legend className="mb-3 text-sm font-semibold text-ink">
+          Newsletter
+        </legend>
+        <label
+          htmlFor="newsletter"
+          className="flex items-start gap-2.5 text-sm text-muted"
+        >
+          <input
+            id="newsletter"
+            name="newsletter"
+            type="checkbox"
+            value="on"
+            defaultChecked={subscribed}
+            className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-accent"
+          />
+          <span>
+            Ich möchte das CEO-Clubhouse-Briefing per E-Mail erhalten.
+          </span>
+        </label>
       </fieldset>
 
       {state.error && (
