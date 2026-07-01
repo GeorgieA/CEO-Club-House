@@ -3,9 +3,6 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export const MAX_SEED_LIKES = 350;
 
-/** Halbwertszeit in Stunden (~30 Tage). */
-const HALF_LIFE_HOURS = 24 * 30;
-
 const AUTO_DISABLE_VOTERS = 20;
 const AUTO_DISABLE_DAYS = 7;
 
@@ -17,22 +14,43 @@ function hashString(input: string): number {
   return Math.abs(hash);
 }
 
-/**
- * Mindest-Likes abhängig davon, wie lange der Artikel auf CEO Clubhouse ist.
- * Nutzt created_at (nicht RSS-published_at).
- */
-function minSeedForSiteAge(ageHours: number, hash: number): number {
-  if (ageHours < 1) return hash % 4;
-  if (ageHours < 6) return 1 + (hash % 9);
-  if (ageHours < 24) return 2 + (hash % 28);
-  if (ageHours < 24 * 7) return 8 + (hash % 65);
-  if (ageHours < 24 * 30) return 20 + (hash % 140);
-  return 40 + (hash % 280);
+function hashUnit(input: string): number {
+  return (hashString(input) % 1000) / 1000;
+}
+
+/** Min/Max-Bänder nach Seiten-Alter (created_at). */
+const AGE_BANDS: { ageMinutes: number; min: number; max: number }[] = [
+  { ageMinutes: 0, min: 8, max: 35 },
+  { ageMinutes: 10, min: 10, max: 70 },
+  { ageMinutes: 60, min: 10, max: 250 },
+  { ageMinutes: 360, min: 30, max: 300 },
+  { ageMinutes: 1440, min: 50, max: 350 },
+  { ageMinutes: 10080, min: 90, max: 350 },
+  { ageMinutes: 43200, min: 140, max: 350 },
+];
+
+function bandForAgeMinutes(ageMinutes: number): { min: number; max: number } {
+  if (ageMinutes <= AGE_BANDS[0].ageMinutes) return AGE_BANDS[0];
+
+  for (let i = 1; i < AGE_BANDS.length; i++) {
+    const prev = AGE_BANDS[i - 1];
+    const next = AGE_BANDS[i];
+    if (ageMinutes <= next.ageMinutes) {
+      const t =
+        (ageMinutes - prev.ageMinutes) / (next.ageMinutes - prev.ageMinutes);
+      return {
+        min: Math.round(prev.min + t * (next.min - prev.min)),
+        max: Math.round(prev.max + t * (next.max - prev.max)),
+      };
+    }
+  }
+
+  return AGE_BANDS[AGE_BANDS.length - 1];
 }
 
 /**
  * Deterministische Seed-Likes pro Artikel.
- * Basiert auf created_at (Seiten-Alter) + stabilem Hash → natürliche Streuung.
+ * Basiert auf created_at (Seiten-Alter) + stabilem Hash → Streuung im Altersband.
  */
 export function computeSeedLikes(
   createdAt: string | Date,
@@ -40,23 +58,20 @@ export function computeSeedLikes(
 ): number {
   const created =
     typeof createdAt === "string" ? new Date(createdAt) : createdAt;
-  const ageHours = Math.max(
+  const ageMinutes = Math.max(
     0,
-    (Date.now() - created.getTime()) / (1000 * 60 * 60),
+    (Date.now() - created.getTime()) / (1000 * 60),
   );
 
-  const hash = hashString(articleId);
-  const spreadHash = hashString(`${articleId}:spread`);
+  const { min, max } = bandForAgeMinutes(ageMinutes);
+  const spread = hashUnit(articleId);
+  const jitter = hashUnit(`${articleId}:jitter`);
 
-  const curve =
-    MAX_SEED_LIKES * (1 - Math.exp(-ageHours / HALF_LIFE_HOURS));
-  const multiplier = 0.45 + (hash % 1000) / 1000;
-  const spread = (spreadHash % 37) - 18;
+  // Zwei Hashes mischen, damit nicht alle am Band-Rand landen.
+  const t = spread * 0.72 + jitter * 0.28;
+  const value = Math.floor(min + t * (max - min));
 
-  const minLikes = minSeedForSiteAge(ageHours, hash);
-  const value = Math.floor(curve * multiplier + spread);
-
-  return Math.min(MAX_SEED_LIKES, Math.max(minLikes, value));
+  return Math.min(MAX_SEED_LIKES, Math.max(min, value));
 }
 
 /** @deprecated Alias für ältere Aufrufer */
