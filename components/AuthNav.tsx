@@ -53,7 +53,7 @@ export default function AuthNav() {
           href="/profil"
           className="rounded-[10px] border-[1.5px] border-ink bg-ink px-5 py-2.5 text-sm font-bold text-accent transition-opacity hover:opacity-90"
         >
-          @{username}
+          {username}
         </Link>
       </div>
     );
