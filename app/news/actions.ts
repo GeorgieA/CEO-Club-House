@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { isCurrentUserAdmin } from "@/lib/admin";
 import { moderateComment } from "@/lib/moderation";
-import { displayLikeCount, isSeedLikesEnabled } from "@/lib/seed-likes";
+import { computeSeedLikes, displayLikeCount, isSeedLikesEnabled } from "@/lib/seed-likes";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { commentBodySchema, reportReasonSchema } from "@/lib/validation";
@@ -311,7 +311,7 @@ export async function getVoteCounts(articleId: string) {
     supabase.from("article_votes").select("vote").eq("article_id", articleId),
     supabase
       .from("articles")
-      .select("seed_likes")
+      .select("created_at")
       .eq("id", articleId)
       .maybeSingle(),
     isSeedLikesEnabled(),
@@ -321,7 +321,10 @@ export async function getVoteCounts(articleId: string) {
     votesRes.data?.filter((v) => v.vote === 1).length ?? 0;
   const dislikes =
     votesRes.data?.filter((v) => v.vote === -1).length ?? 0;
-  const seedLikes = (articleRes.data?.seed_likes as number | undefined) ?? 0;
+  const createdAt =
+    (articleRes.data?.created_at as string | undefined) ??
+    new Date().toISOString();
+  const seedLikes = computeSeedLikes(createdAt, articleId);
 
   return {
     likes: displayLikeCount(realLikes, seedLikes, seedEnabled),

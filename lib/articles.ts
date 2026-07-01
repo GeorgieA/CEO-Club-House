@@ -3,7 +3,7 @@ import {
   type NewsCategory,
   type NewsItem,
 } from "@/lib/data";
-import { displayLikeCount, isSeedLikesEnabled } from "@/lib/seed-likes";
+import { computeSeedLikes, displayLikeCount, isSeedLikesEnabled } from "@/lib/seed-likes";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { relativeTime } from "@/lib/time";
@@ -85,7 +85,7 @@ export function rowToNewsItem(row: ArticleRow): NewsItem {
  */
 async function withCounts(
   items: NewsItem[],
-  seedLikesById: Map<string, number> = new Map(),
+  createdAtById: Map<string, string> = new Map(),
 ): Promise<NewsItem[]> {
   if (items.length === 0) return items;
 
@@ -131,16 +131,22 @@ async function withCounts(
     commentMap.set(id, (commentMap.get(id) ?? 0) + 1);
   }
 
-  return items.map((item) => ({
-    ...item,
-    likeCount: displayLikeCount(
-      likeMap.get(item.id) ?? 0,
-      seedLikesById.get(item.id) ?? 0,
-      seedEnabled,
-    ),
-    dislikeCount: dislikeMap.get(item.id) ?? 0,
-    commentCount: commentMap.get(item.id) ?? 0,
-  }));
+  return items.map((item) => {
+    const createdAt =
+      createdAtById.get(item.id) ?? item.publishedAt ?? new Date().toISOString();
+    const seedLikes = computeSeedLikes(createdAt, item.id);
+
+    return {
+      ...item,
+      likeCount: displayLikeCount(
+        likeMap.get(item.id) ?? 0,
+        seedLikes,
+        seedEnabled,
+      ),
+      dislikeCount: dislikeMap.get(item.id) ?? 0,
+      commentCount: commentMap.get(item.id) ?? 0,
+    };
+  });
 }
 
 export async function getTodayArticleCount(): Promise<number> {
@@ -226,9 +232,7 @@ export async function getAllArticles(limit = 200): Promise<NewsItem[]> {
 
   return withCounts(
     (data as ArticleRow[]).map(rowToNewsItem),
-    new Map(
-      (data as ArticleRow[]).map((row) => [row.id, row.seed_likes ?? 0]),
-    ),
+    new Map((data as ArticleRow[]).map((row) => [row.id, row.created_at])),
   );
 }
 
@@ -253,9 +257,7 @@ export async function getArticlesByCategory(
 
   return withCounts(
     (data as ArticleRow[]).map(rowToNewsItem),
-    new Map(
-      (data as ArticleRow[]).map((row) => [row.id, row.seed_likes ?? 0]),
-    ),
+    new Map((data as ArticleRow[]).map((row) => [row.id, row.created_at])),
   );
 }
 

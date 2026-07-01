@@ -20,11 +20,28 @@ alter table public.articles
 alter table public.app_settings
   add column if not exists seed_likes_enabled boolean not null default true;
 
--- 3) Teil-Backfill für Bestandsartikel: sofort 30–50 Likes
+-- 3) Backfill: altersbasiert mit pro-Artikel-Streuung (nicht flach 30–50)
 update public.articles
 set seed_likes = least(
   350,
-  30 + floor(random() * 21)::int
+  greatest(
+    case
+      when extract(epoch from (now() - published_at)) / 3600.0 < 24
+        then 1 + (abs(hashtext(id::text)) % 38)
+      else 0
+    end,
+    (
+      floor(
+        350.0
+        * (1 - exp(
+          -greatest(0, extract(epoch from (now() - published_at)) / 3600.0)
+          / (24.0 * 30)
+        ))
+        * (0.15 + (abs(hashtext(id::text)) % 1000) / 1000.0 * 1.3)
+      )
+      + ((abs(hashtext(id::text || ':offset')) % 23) - 11)
+    )::int
+  )
 )
 where seed_likes = 0;
 
