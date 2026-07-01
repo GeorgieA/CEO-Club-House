@@ -3,6 +3,7 @@ import {
   type NewsCategory,
   type NewsItem,
 } from "@/lib/data";
+import { displayLikeCount, isSeedLikesEnabled } from "@/lib/seed-likes";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { relativeTime } from "@/lib/time";
@@ -17,6 +18,7 @@ export interface ArticleRow {
   source_url: string;
   published_at: string;
   created_at: string;
+  seed_likes?: number;
 }
 
 export interface ArticleInsert {
@@ -81,13 +83,17 @@ export function rowToNewsItem(row: ArticleRow): NewsItem {
  * GROUP BY ohne RPC anbietet. Bei fehlendem Client (z. B. Build ohne Env)
  * werden die Items unverändert zurückgegeben.
  */
-async function withCounts(items: NewsItem[]): Promise<NewsItem[]> {
+async function withCounts(
+  items: NewsItem[],
+  seedLikesById: Map<string, number> = new Map(),
+): Promise<NewsItem[]> {
   if (items.length === 0) return items;
 
   const supabase = createSupabaseServerClient();
   if (!supabase) return items;
 
   const ids = items.map((item) => item.id);
+  const seedEnabled = await isSeedLikesEnabled();
 
   const [votesRes, commentsRes] = await Promise.all([
     supabase
@@ -127,7 +133,11 @@ async function withCounts(items: NewsItem[]): Promise<NewsItem[]> {
 
   return items.map((item) => ({
     ...item,
-    likeCount: likeMap.get(item.id) ?? 0,
+    likeCount: displayLikeCount(
+      likeMap.get(item.id) ?? 0,
+      seedLikesById.get(item.id) ?? 0,
+      seedEnabled,
+    ),
     dislikeCount: dislikeMap.get(item.id) ?? 0,
     commentCount: commentMap.get(item.id) ?? 0,
   }));
@@ -214,7 +224,12 @@ export async function getAllArticles(limit = 200): Promise<NewsItem[]> {
     return [];
   }
 
-  return withCounts((data as ArticleRow[]).map(rowToNewsItem));
+  return withCounts(
+    (data as ArticleRow[]).map(rowToNewsItem),
+    new Map(
+      (data as ArticleRow[]).map((row) => [row.id, row.seed_likes ?? 0]),
+    ),
+  );
 }
 
 export async function getArticlesByCategory(
@@ -236,7 +251,12 @@ export async function getArticlesByCategory(
     return [];
   }
 
-  return withCounts((data as ArticleRow[]).map(rowToNewsItem));
+  return withCounts(
+    (data as ArticleRow[]).map(rowToNewsItem),
+    new Map(
+      (data as ArticleRow[]).map((row) => [row.id, row.seed_likes ?? 0]),
+    ),
+  );
 }
 
 export async function getArticleBySlug(slug: string): Promise<ArticleRow | null> {

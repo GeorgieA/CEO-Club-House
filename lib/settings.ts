@@ -43,3 +43,57 @@ export async function saveGeminiInstructions(
 
   if (error) throw new Error(error.message);
 }
+
+export async function getSeedLikesEnabled(): Promise<boolean> {
+  if (process.env.SEED_LIKES_ENABLED === "false") return false;
+
+  try {
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin
+      .from("app_settings")
+      .select("seed_likes_enabled")
+      .eq("id", true)
+      .maybeSingle();
+
+    if (error) {
+      console.warn("[settings] seed_likes_enabled:", error.message);
+      return true;
+    }
+
+    return data?.seed_likes_enabled ?? true;
+  } catch (error) {
+    console.warn(
+      "[settings] seed_likes_enabled nicht verfügbar:",
+      error instanceof Error ? error.message : error,
+    );
+    return true;
+  }
+}
+
+export async function setSeedLikesEnabled(enabled: boolean): Promise<void> {
+  const admin = getSupabaseAdmin();
+  const { error } = await admin
+    .from("app_settings")
+    .update({ seed_likes_enabled: enabled })
+    .eq("id", true);
+
+  if (error) throw new Error(error.message);
+}
+
+export async function saveAdminSettings(
+  instructions: string,
+  seedLikesEnabled: boolean,
+  updatedBy: string,
+): Promise<void> {
+  const admin = getSupabaseAdmin();
+  const { error } = await admin
+    .from("app_settings")
+    .update({
+      gemini_instructions: instructions,
+      seed_likes_enabled: seedLikesEnabled,
+      updated_by: updatedBy,
+    })
+    .eq("id", true);
+
+  if (error) throw new Error(error.message);
+}

@@ -5,7 +5,7 @@ import { isCurrentUserAdmin } from "@/lib/admin";
 import { getUser } from "@/lib/supabase/server";
 import {
   MAX_GEMINI_INSTRUCTIONS,
-  saveGeminiInstructions,
+  saveAdminSettings,
 } from "@/lib/settings";
 
 export type AdminActionState = {
@@ -24,6 +24,7 @@ export async function updateGeminiInstructions(
 
   const raw = (formData.get("geminiInstructions") as string | null) ?? "";
   const instructions = raw.trim();
+  const seedLikesEnabled = formData.get("seedLikesEnabled") === "on";
 
   if (instructions.length > MAX_GEMINI_INSTRUCTIONS) {
     return {
@@ -32,13 +33,16 @@ export async function updateGeminiInstructions(
   }
 
   try {
-    await saveGeminiInstructions(instructions, user.id);
+    await saveAdminSettings(instructions, seedLikesEnabled, user.id);
   } catch (error) {
-    console.error("[admin] saveGeminiInstructions:", error);
+    console.error("[admin] saveAdminSettings:", error);
     return { error: "Speichern fehlgeschlagen. Bitte erneut versuchen." };
   }
 
   revalidatePath("/admin");
 
-  return { success: "Anweisungen gespeichert. Sie gelten ab dem nächsten Import." };
+  return {
+    success:
+      "Einstellungen gespeichert. Seed-Likes und Gemini-Anweisungen gelten ab dem nächsten Import.",
+  };
 }

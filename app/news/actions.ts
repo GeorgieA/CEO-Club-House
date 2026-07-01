@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { isCurrentUserAdmin } from "@/lib/admin";
 import { moderateComment } from "@/lib/moderation";
+import { displayLikeCount, isSeedLikesEnabled } from "@/lib/seed-likes";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { commentBodySchema, reportReasonSchema } from "@/lib/validation";
@@ -306,14 +307,26 @@ export async function deleteComment(
 
 export async function getVoteCounts(articleId: string) {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("article_votes")
-    .select("vote")
-    .eq("article_id", articleId);
+  const [votesRes, articleRes, seedEnabled] = await Promise.all([
+    supabase.from("article_votes").select("vote").eq("article_id", articleId),
+    supabase
+      .from("articles")
+      .select("seed_likes")
+      .eq("id", articleId)
+      .maybeSingle(),
+    isSeedLikesEnabled(),
+  ]);
 
-  const likes = data?.filter((v) => v.vote === 1).length ?? 0;
-  const dislikes = data?.filter((v) => v.vote === -1).length ?? 0;
-  return { likes, dislikes };
+  const realLikes =
+    votesRes.data?.filter((v) => v.vote === 1).length ?? 0;
+  const dislikes =
+    votesRes.data?.filter((v) => v.vote === -1).length ?? 0;
+  const seedLikes = (articleRes.data?.seed_likes as number | undefined) ?? 0;
+
+  return {
+    likes: displayLikeCount(realLikes, seedLikes, seedEnabled),
+    dislikes,
+  };
 }
 
 export async function getUserVote(articleId: string): Promise<1 | -1 | null> {

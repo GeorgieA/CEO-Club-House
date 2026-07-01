@@ -11,10 +11,12 @@ const initialState: AdminActionState = {};
 
 interface AdminSettingsFormProps {
   instructions: string;
+  seedLikesEnabled: boolean;
 }
 
 export default function AdminSettingsForm({
   instructions,
+  seedLikesEnabled,
 }: AdminSettingsFormProps) {
   const [state, formAction, pending] = useActionState(
     updateGeminiInstructions,
@@ -50,6 +52,27 @@ export default function AdminSettingsForm({
         </p>
       </div>
 
+      <div className="rounded-[14px] border border-line bg-white p-5 dark:bg-[#181230]">
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            name="seedLikesEnabled"
+            defaultChecked={seedLikesEnabled}
+            className="mt-1 h-4 w-4 accent-accent"
+          />
+          <span>
+            <span className="block text-sm font-semibold text-ink">
+              Seed-Likes aktiv
+            </span>
+            <span className="mt-1 block text-sm text-muted">
+              Artikel erhalten automatisch künstliche Likes (max. 350), bis
+              echter Traffic da ist. Wächst stündlich mit dem Alter des
+              Artikels. Schaltet sich ab, wenn genug echte Nutzer voten.
+            </span>
+          </span>
+        </label>
+      </div>
+
       {state.error && (
         <p role="alert" className="text-sm font-semibold text-[#dc2626]">
           {state.error}
@@ -66,7 +89,7 @@ export default function AdminSettingsForm({
         disabled={pending}
         className="w-full rounded-[10px] bg-ink px-4 py-3 font-bold text-accent transition-opacity hover:opacity-90 disabled:opacity-60 sm:w-auto"
       >
-        {pending ? "Wird gespeichert …" : "Anweisungen speichern"}
+        {pending ? "Wird gespeichert …" : "Einstellungen speichern"}
       </button>
     </form>
   );

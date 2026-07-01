@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import ScrollToTop from "@/components/ScrollToTop";
 import { getUserStats, isCurrentUserAdmin } from "@/lib/admin";
-import { getGeminiInstructions } from "@/lib/settings";
+import { getGeminiInstructions, getSeedLikesEnabled } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: "Admin | CEO Clubhouse",
@@ -18,8 +18,9 @@ export default async function AdminPage() {
   const isAdmin = await isCurrentUserAdmin();
   if (!isAdmin) redirect("/");
 
-  const [instructions, stats] = await Promise.all([
+  const [instructions, seedLikesEnabled, stats] = await Promise.all([
     getGeminiInstructions(),
+    getSeedLikesEnabled(),
     getUserStats(),
   ]);
 
@@ -60,7 +61,10 @@ export default async function AdminPage() {
           <h2 className="mb-4 text-sm font-bold tracking-[0.12em] text-accent uppercase">
             News-Automatik
           </h2>
-          <AdminSettingsForm instructions={instructions} />
+          <AdminSettingsForm
+            instructions={instructions}
+            seedLikesEnabled={seedLikesEnabled}
+          />
         </section>
       </main>
       <Footer />

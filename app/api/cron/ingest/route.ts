@@ -9,6 +9,7 @@ import { classifyArticle } from "@/lib/categorize";
 import { dedupeBySimilarity } from "@/lib/dedupe";
 import { fetchAllFeeds } from "@/lib/feeds";
 import { getGeminiInstructions } from "@/lib/settings";
+import { bumpSeedLikes, maybeAutoDisableSeedLikes } from "@/lib/seed-likes";
 import { isHelpfulArticle, summarizeArticles } from "@/lib/summarize";
 
 export const runtime = "nodejs";
@@ -28,6 +29,12 @@ function isAuthorized(request: Request): boolean {
   if (!secret) return false;
   const auth = request.headers.get("authorization");
   return auth === `Bearer ${secret}`;
+}
+
+async function runSeedLikeMaintenance() {
+  const seedLikesBumped = await bumpSeedLikes();
+  const seedLikesDisabled = await maybeAutoDisableSeedLikes();
+  return { seedLikesBumped, seedLikesDisabled };
 }
 
 export async function GET(request: Request) {
@@ -121,11 +128,15 @@ export async function GET(request: Request) {
     });
 
     if (fresh.length === 0) {
+      const { seedLikesBumped, seedLikesDisabled } = await runSeedLikeMaintenance();
+
       log("ingest.done", {
         inserted: 0,
         skipped: classified.length,
         rejectedByCategory,
         feedsFailed,
+        seedLikesBumped,
+        seedLikesDisabled,
         durationMs: Date.now() - startedAt,
       });
 
@@ -136,6 +147,8 @@ export async function GET(request: Request) {
         rejectedByCategory,
         message: "Keine neuen Artikel.",
         feedsFailed,
+        seedLikesBumped,
+        seedLikesDisabled,
         durationMs: Date.now() - startedAt,
       });
     }
@@ -186,6 +199,8 @@ export async function GET(request: Request) {
     });
 
     if (helpful.length === 0) {
+      const { seedLikesBumped, seedLikesDisabled } = await runSeedLikeMaintenance();
+
       log("ingest.done", {
         inserted: 0,
         skipped: classified.length - fresh.length,
@@ -193,6 +208,8 @@ export async function GET(request: Request) {
         rejectedByCategory,
         rejectedUnhelpful,
         feedsFailed,
+        seedLikesBumped,
+        seedLikesDisabled,
         durationMs: Date.now() - startedAt,
       });
 
@@ -205,6 +222,8 @@ export async function GET(request: Request) {
         rejectedUnhelpful,
         message: "Keine Artikel mit hilfreicher Zusammenfassung.",
         feedsFailed,
+        seedLikesBumped,
+        seedLikesDisabled,
         durationMs: Date.now() - startedAt,
       });
     }
@@ -223,6 +242,8 @@ export async function GET(request: Request) {
 
     const inserted = await insertArticles(rows);
 
+    const { seedLikesBumped, seedLikesDisabled } = await runSeedLikeMaintenance();
+
     log("ingest.done", {
       inserted,
       skipped: classified.length - fresh.length,
@@ -230,6 +251,8 @@ export async function GET(request: Request) {
       rejectedByCategory,
       rejectedUnhelpful,
       feedsFailed,
+      seedLikesBumped,
+      seedLikesDisabled,
       durationMs: Date.now() - startedAt,
     });
 
@@ -241,6 +264,8 @@ export async function GET(request: Request) {
       rejectedByCategory,
       rejectedUnhelpful,
       feedsFailed,
+      seedLikesBumped,
+      seedLikesDisabled,
       durationMs: Date.now() - startedAt,
     });
   } catch (error) {
